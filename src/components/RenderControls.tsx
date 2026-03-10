@@ -50,7 +50,7 @@ export const RenderControls: React.FC<{
   projectName,
   onRendered,
 }) => {
-  const { renderMedia, state, undo } = useRendering(
+  const { renderMedia, state, undo, cancel } = useRendering(
     COMP_NAME,
     projectId,
     assetId,
@@ -62,6 +62,7 @@ export const RenderControls: React.FC<{
   const isRendering = state.status === "invoking";
   const isDone = state.status === "done";
   const hasError = state.status === "error";
+  const isCancelled = state.status === "cancelled";
 
   return (
     <div className="border border-unfocused-border-color rounded-geist bg-background overflow-hidden">
@@ -107,6 +108,51 @@ export const RenderControls: React.FC<{
             </span>
           </div>
           <ProgressBar progress={state.progress} />
+          <div className="flex justify-end">
+            <Button secondary onClick={cancel}>
+              <svg
+                className="w-4 h-4 mr-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Cancelled State */}
+      {isCancelled && (
+        <div className="mx-4 mb-4 p-3 rounded-geist bg-muted border border-unfocused-border-color">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <svg
+                className="w-4 h-4 text-muted-foreground shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+              <p className="text-sm text-muted-foreground">Render cancelled</p>
+            </div>
+            <Button secondary onClick={undo}>
+              Try Again
+            </Button>
+          </div>
         </div>
       )}
 

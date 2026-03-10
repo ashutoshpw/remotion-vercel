@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import { CompositionProps } from "../../types/constants";
 import { SSEMessage } from "../../types/schema";
@@ -12,6 +12,9 @@ export type State =
       phase: string;
       progress: number;
       subtitle: string | null;
+    }
+  | {
+      status: "cancelled";
     }
   | {
       status: "error";
@@ -34,6 +37,7 @@ export const useRendering = (
   const [state, setState] = useState<State>({
     status: "init",
   });
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const renderMedia = useCallback(async () => {
     if (!projectId) {
@@ -43,6 +47,9 @@ export const useRendering = (
       });
       return;
     }
+
+    // Create new abort controller for this render
+    abortControllerRef.current = new AbortController();
 
     setState({
       status: "invoking",
@@ -61,6 +68,7 @@ export const useRendering = (
           assetId: assetId ?? undefined,
           inputProps,
         }),
+        signal: abortControllerRef.current.signal,
       });
 
       if (!response.ok) {
@@ -132,12 +140,25 @@ export const useRendering = (
         }
       }
     } catch (err) {
+      // Handle abort separately
+      if (err instanceof Error && err.name === "AbortError") {
+        setState({ status: "cancelled" });
+        return;
+      }
       setState({
         status: "error",
         error: err as Error,
       });
+    } finally {
+      abortControllerRef.current = null;
     }
   }, [assetId, id, inputProps, onRendered, projectId]);
+
+  const cancel = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+  }, []);
 
   const undo = useCallback(() => {
     setState({ status: "init" });
@@ -148,6 +169,7 @@ export const useRendering = (
       renderMedia,
       state,
       undo,
+      cancel,
     };
-  }, [renderMedia, state, undo]);
+  }, [renderMedia, state, undo, cancel]);
 };
