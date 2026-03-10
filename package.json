@@ -11,7 +11,8 @@
     "create-snapshot": "bun create-snapshot.ts",
     "render": "remotion render",
     "db:generate": "drizzle-kit generate",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "prepare": "husky"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
@@ -54,6 +55,7 @@
     "drizzle-kit": "^0.31.9",
     "eslint": "9.19.0",
     "eslint-config-next": "15.1.6",
+    "husky": "^9.1.7",
     "postcss": "8.4.47",
     "prettier": "3.8.1",
     "tailwindcss": "4.2.0",

@@ -1,0 +1,31 @@
+#!/bin/sh
+
+# Check for staged .ts/.tsx files over 600 lines
+MAX_LINES=600
+
+# Get list of staged TypeScript files
+STAGED_TS_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(ts|tsx)$')
+
+if [ -z "$STAGED_TS_FILES" ]; then
+  exit 0
+fi
+
+FAIL=0
+for FILE in $STAGED_TS_FILES; do
+  if [ -f "$FILE" ]; then
+    LINES=$(wc -l < "$FILE" | tr -d ' ')
+    if [ "$LINES" -gt "$MAX_LINES" ]; then
+      echo "Error: $FILE has $LINES lines (max: $MAX_LINES)"
+      FAIL=1
+    fi
+  fi
+done
+
+if [ "$FAIL" -eq 1 ]; then
+  echo ""
+  echo "Pre-commit hook failed: Some TypeScript files exceed $MAX_LINES lines."
+  echo "Please refactor large files into smaller modules."
+  exit 1
+fi
+
+exit 0

@@ -43,7 +43,10 @@ export async function GET(request: Request) {
   const teamId = searchParams.get("teamId");
 
   if (!teamId) {
-    return NextResponse.json({ message: "teamId is required" }, { status: 400 });
+    return NextResponse.json(
+      { message: "teamId is required" },
+      { status: 400 },
+    );
   }
 
   try {
@@ -56,7 +59,7 @@ export async function GET(request: Request) {
     const assetCounts = db
       .select({
         projectId: projectAsset.projectId,
-        count: count(projectAsset.id).as("count"),
+        count: count(projectAsset.id).as("asset_count"),
       })
       .from(projectAsset)
       .groupBy(projectAsset.projectId)
@@ -64,7 +67,7 @@ export async function GET(request: Request) {
     const videoCounts = db
       .select({
         projectId: video.projectId,
-        count: count(video.id).as("count"),
+        count: count(video.id).as("video_count"),
       })
       .from(video)
       .groupBy(video.projectId)

@@ -1,8 +1,9 @@
 import { Metadata, Viewport } from "next";
+import { ThemeProvider } from "../lib/theme";
 import "../../styles/global.css";
 
 export const metadata: Metadata = {
-  title: "Remotion teams and projects on Vercel",
+  title: "Remotion Studio",
   description:
     "Authenticated Remotion workspaces with reusable project assets and Vercel-backed renders.",
 };
@@ -19,8 +20,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="bg-background text-foreground">{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body className="bg-background text-foreground">
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }
