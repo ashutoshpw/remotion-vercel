@@ -8,30 +8,53 @@ const AI_PROVIDERS = [
   {
     id: "openai",
     name: "OpenAI",
-    models: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo"],
+    models: [
+      "o3",
+      "o3-pro",
+      "o3-mini",
+      "o4-mini",
+      "gpt-4.1",
+      "gpt-4.1-mini",
+      "gpt-4.1-nano",
+      "gpt-4o",
+      "gpt-4o-mini",
+    ],
   },
   {
     id: "anthropic",
     name: "Anthropic",
     models: [
+      "claude-opus-4-6",
+      "claude-opus-4-5-20251101",
       "claude-sonnet-4-20250514",
       "claude-3-5-sonnet-20241022",
-      "claude-3-haiku-20240307",
+      "claude-3-5-haiku-20241022",
     ],
   },
   {
     id: "google",
     name: "Google",
-    models: ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash"],
+    models: [
+      "gemini-2.5-pro",
+      "gemini-2.5-flash",
+      "gemini-2.5-flash-lite-preview",
+      "gemini-2.0-flash",
+      "gemini-1.5-pro",
+    ],
   },
-  { id: "xai", name: "xAI", models: ["grok-2", "grok-2-mini"] },
+  {
+    id: "xai",
+    name: "xAI",
+    models: ["grok-4", "grok-3", "grok-3-mini"],
+  },
   {
     id: "mistral",
     name: "Mistral",
     models: [
       "mistral-large-latest",
-      "mistral-medium-latest",
+      "codestral-2501",
       "mistral-small-latest",
+      "mistral-nemo",
     ],
   },
 ] as const;
@@ -114,7 +137,7 @@ export const AISettingsClient: React.FC<AISettingsClientProps> = ({
   const [provider, setProvider] = useState<ProviderType>(
     existingSettings?.provider || "openai",
   );
-  const [model, setModel] = useState(existingSettings?.model || "gpt-4o");
+  const [model, setModel] = useState(existingSettings?.model || "o3");
   const [apiKey, setApiKey] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
