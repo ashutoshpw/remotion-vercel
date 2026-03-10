@@ -2,7 +2,13 @@ import { redirect, notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { getServerSession } from "@/lib/server-session";
 import { getDb } from "@/lib/db";
-import { project, projectAsset, team, video } from "@/db/schema";
+import {
+  project,
+  projectAsset,
+  team,
+  video,
+  teamAiSettings,
+} from "@/db/schema";
 import { VideoPageClient } from "./VideoPageClient";
 import type { VideoDetails } from "@/types/schema";
 
@@ -10,12 +16,23 @@ interface PageProps {
   params: Promise<{ teamSlug: string; projectSlug: string; videoId: string }>;
 }
 
+interface Asset {
+  id: string;
+  name: string;
+  url: string;
+  type: string;
+}
+
 async function getVideoDetails(
   teamSlug: string,
   projectSlug: string,
   videoId: string,
   userId: string,
-): Promise<VideoDetails | null> {
+): Promise<{
+  video: VideoDetails;
+  assets: Asset[];
+  isAiConfigured: boolean;
+} | null> {
   const db = getDb();
 
   // First verify team/project access
@@ -66,7 +83,25 @@ async function getVideoDetails(
     return null;
   }
 
-  return {
+  // Fetch all project assets
+  const projectAssets = await db
+    .select({
+      id: projectAsset.id,
+      name: projectAsset.name,
+      url: projectAsset.url,
+      type: projectAsset.type,
+    })
+    .from(projectAsset)
+    .where(eq(projectAsset.projectId, projectRecord.id));
+
+  // Check if AI is configured for the team
+  const [aiSettings] = await db
+    .select({ id: teamAiSettings.id })
+    .from(teamAiSettings)
+    .where(eq(teamAiSettings.teamId, projectRecord.team.id))
+    .limit(1);
+
+  const videoDetails: VideoDetails = {
     id: videoRecord.id,
     projectId: videoRecord.projectId,
     title: videoRecord.title,
@@ -96,6 +131,12 @@ async function getVideoDetails(
           }
         : null,
   };
+
+  return {
+    video: videoDetails,
+    assets: projectAssets,
+    isAiConfigured: !!aiSettings,
+  };
 }
 
 export default async function VideoPage({ params }: PageProps) {
@@ -106,16 +147,22 @@ export default async function VideoPage({ params }: PageProps) {
   }
 
   const { teamSlug, projectSlug, videoId } = await params;
-  const videoDetails = await getVideoDetails(
+  const data = await getVideoDetails(
     teamSlug,
     projectSlug,
     videoId,
     session.user.id,
   );
 
-  if (!videoDetails) {
+  if (!data) {
     notFound();
   }
 
-  return <VideoPageClient video={videoDetails} />;
+  return (
+    <VideoPageClient
+      video={data.video}
+      assets={data.assets}
+      isAiConfigured={data.isAiConfigured}
+    />
+  );
 }

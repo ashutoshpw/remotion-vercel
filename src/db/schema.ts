@@ -25,6 +25,21 @@ export const teamMemberRoleEnum = pgEnum("team_member_role", [
   "member",
 ]);
 
+export const aiProviderEnum = pgEnum("ai_provider", [
+  "openai",
+  "anthropic",
+  "google",
+  "xai",
+  "mistral",
+]);
+
+export const chatMessageRoleEnum = pgEnum("chat_message_role", [
+  "user",
+  "assistant",
+  "system",
+  "tool",
+]);
+
 export const user = pgTable(
   "user",
   {
@@ -248,6 +263,49 @@ export const video = pgTable(
   ],
 );
 
+export const teamAiSettings = pgTable(
+  "team_ai_settings",
+  {
+    id: text("id").primaryKey().$defaultFn(createId),
+    teamId: text("team_id")
+      .notNull()
+      .references(() => team.id, { onDelete: "cascade" }),
+    provider: aiProviderEnum("provider").notNull(),
+    apiKey: text("api_key").notNull(), // Encrypted
+    model: text("model").notNull(),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index("team_ai_settings_team_id_idx").on(table.teamId)],
+);
+
+export const chatMessage = pgTable(
+  "chat_message",
+  {
+    id: text("id").primaryKey().$defaultFn(createId),
+    videoId: text("video_id")
+      .notNull()
+      .references(() => video.id, { onDelete: "cascade" }),
+    role: chatMessageRoleEnum("role").notNull(),
+    content: text("content").notNull(),
+    toolCalls: jsonb("tool_calls"),
+    toolResults: jsonb("tool_results"),
+    metadata: jsonb("metadata"), // Token usage, model used, etc.
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("chat_message_video_id_idx").on(table.videoId),
+    index("chat_message_video_created_idx").on(table.videoId, table.createdAt),
+  ],
+);
+
 export const userRelations = relations(user, ({ many }) => ({
   teams: many(team),
   teamMemberships: many(teamMember),
@@ -262,6 +320,7 @@ export const teamRelations = relations(team, ({ one, many }) => ({
   }),
   members: many(teamMember),
   projects: many(project),
+  aiSettings: many(teamAiSettings),
 }));
 
 export const teamMemberRelations = relations(teamMember, ({ one }) => ({
@@ -299,7 +358,7 @@ export const projectAssetRelations = relations(
   }),
 );
 
-export const videoRelations = relations(video, ({ one }) => ({
+export const videoRelations = relations(video, ({ one, many }) => ({
   project: one(project, {
     fields: [video.projectId],
     references: [project.id],
@@ -307,5 +366,20 @@ export const videoRelations = relations(video, ({ one }) => ({
   asset: one(projectAsset, {
     fields: [video.assetId],
     references: [projectAsset.id],
+  }),
+  chatMessages: many(chatMessage),
+}));
+
+export const teamAiSettingsRelations = relations(teamAiSettings, ({ one }) => ({
+  team: one(team, {
+    fields: [teamAiSettings.teamId],
+    references: [team.id],
+  }),
+}));
+
+export const chatMessageRelations = relations(chatMessage, ({ one }) => ({
+  video: one(video, {
+    fields: [chatMessage.videoId],
+    references: [video.id],
   }),
 }));

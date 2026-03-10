@@ -8,7 +8,12 @@ import {
   useVideoConfig,
 } from "remotion";
 import { z } from "zod";
-import { CompositionProps } from "@/types/constants";
+import {
+  CompositionProps,
+  themeColors,
+  fontSizes,
+  animationSpeeds,
+} from "@/types/constants";
 import { NextLogo } from "./NextLogo";
 import { Rings } from "./Rings";
 import { TextFade } from "./TextFade";
@@ -23,9 +28,29 @@ export const Main = ({
   projectName,
   assetName,
   assetUrl,
+  theme = "light",
+  backgroundColor,
+  primaryColor,
+  accentColor,
+  titleFontSize = "medium",
+  textAlign = "left",
+  showLogo = true,
+  animationSpeed = "normal",
 }: z.infer<typeof CompositionProps>) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+
+  // Resolve colors based on theme and custom overrides
+  const colors = themeColors[theme];
+  const bgColor = backgroundColor || colors.background;
+  const titleColor = primaryColor || colors.primary;
+  const subtitleColor = accentColor || colors.accent;
+
+  // Get font sizes based on setting
+  const sizes = fontSizes[titleFontSize];
+
+  // Get animation damping based on speed
+  const damping = animationSpeeds[animationSpeed];
 
   const transitionStart = 2 * fps;
   const transitionDuration = 1 * fps;
@@ -34,38 +59,68 @@ export const Main = ({
     fps,
     frame,
     config: {
-      damping: 200,
+      damping,
     },
     durationInFrames: transitionDuration,
     delay: transitionStart,
   });
 
+  // Text alignment styles
+  const alignmentStyles =
+    textAlign === "center"
+      ? { alignItems: "center", textAlign: "center" as const }
+      : { alignItems: "flex-start", textAlign: "left" as const };
+
   return (
-    <AbsoluteFill className="bg-white">
-      <Sequence durationInFrames={transitionStart + transitionDuration}>
-        <Rings outProgress={logoOut}></Rings>
-        <AbsoluteFill className="justify-center items-center">
-          <NextLogo outProgress={logoOut}></NextLogo>
-        </AbsoluteFill>
-      </Sequence>
-      <Sequence from={transitionStart + transitionDuration / 2}>
+    <AbsoluteFill style={{ backgroundColor: bgColor }}>
+      {showLogo && (
+        <Sequence durationInFrames={transitionStart + transitionDuration}>
+          <Rings outProgress={logoOut} />
+          <AbsoluteFill className="justify-center items-center">
+            <NextLogo outProgress={logoOut} />
+          </AbsoluteFill>
+        </Sequence>
+      )}
+      <Sequence from={showLogo ? transitionStart + transitionDuration / 2 : 0}>
         <TextFade>
-          <div className="flex items-center gap-12 px-20">
-            <div className="flex flex-col gap-5 max-w-[720px]">
+          <div
+            className="flex items-center gap-12 px-20"
+            style={{
+              justifyContent: textAlign === "center" ? "center" : "flex-start",
+            }}
+          >
+            <div
+              className="flex flex-col gap-5 max-w-[720px]"
+              style={alignmentStyles}
+            >
               <div
-                className="uppercase tracking-[0.3em] text-[24px] text-[#555]"
-                style={{ fontFamily }}
+                className="uppercase tracking-[0.3em]"
+                style={{
+                  fontFamily,
+                  fontSize: sizes.subtitle,
+                  color: subtitleColor,
+                }}
               >
                 {projectName}
               </div>
               <h1
-                className="text-[70px] font-bold leading-tight"
-                style={{ fontFamily }}
+                className="font-bold leading-tight"
+                style={{
+                  fontFamily,
+                  fontSize: sizes.title,
+                  color: titleColor,
+                }}
               >
                 {title}
               </h1>
               {assetName ? (
-                <div className="text-[28px] text-[#666]" style={{ fontFamily }}>
+                <div
+                  style={{
+                    fontFamily,
+                    fontSize: sizes.assetLabel,
+                    color: subtitleColor,
+                  }}
+                >
                   Reusing saved asset: {assetName}
                 </div>
               ) : null}

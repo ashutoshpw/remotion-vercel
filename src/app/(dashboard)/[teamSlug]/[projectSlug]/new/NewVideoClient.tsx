@@ -9,6 +9,7 @@ import {
   VIDEO_FPS,
   VIDEO_HEIGHT,
   VIDEO_WIDTH,
+  defaultMyCompProps,
 } from "@/types/constants";
 import { RenderControls } from "@/components/RenderControls";
 import { Breadcrumbs } from "@/components/dashboard/Breadcrumbs";
@@ -91,6 +92,7 @@ export const NewVideoClient: React.FC<NewVideoClientProps> = ({ project }) => {
 
   const inputProps = useMemo(
     () => ({
+      ...defaultMyCompProps,
       title: text,
       projectName: project.name,
       assetName: selectedAsset?.name,

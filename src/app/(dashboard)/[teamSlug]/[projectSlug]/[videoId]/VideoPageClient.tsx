@@ -1,10 +1,34 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Player } from "@remotion/player";
+import { Main } from "@/remotion/MyComp/Main";
+import {
+  DURATION_IN_FRAMES,
+  VIDEO_FPS,
+  VIDEO_HEIGHT,
+  VIDEO_WIDTH,
+  defaultMyCompProps,
+} from "@/types/constants";
+import type { CompositionPropsType } from "@/types/constants";
 import { Breadcrumbs } from "@/components/dashboard/Breadcrumbs";
+import { VideoEditorTabs } from "@/components/video/VideoEditorTabs";
 import type { VideoDetails } from "@/types/schema";
+
+interface Asset {
+  id: string;
+  name: string;
+  url: string;
+  type: string;
+}
+
+interface VideoPageClientProps {
+  video: VideoDetails;
+  assets: Asset[];
+  isAiConfigured: boolean;
+}
 
 const formatBytes = (bytes: number | null) => {
   if (!bytes) return "0 B";
@@ -89,14 +113,74 @@ const RefreshIcon: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
-interface VideoPageClientProps {
-  video: VideoDetails;
-}
+const PlayIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg
+    className={className}
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={1.5}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"
+    />
+  </svg>
+);
 
-export const VideoPageClient: React.FC<VideoPageClientProps> = ({ video }) => {
+export const VideoPageClient: React.FC<VideoPageClientProps> = ({
+  video,
+  assets,
+  isAiConfigured,
+}) => {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showPreview, setShowPreview] = useState(video.status !== "ready");
+
+  // Parse initial props from video.inputProps
+  const initialProps = useMemo(() => {
+    const stored = video.inputProps as Partial<CompositionPropsType>;
+    return {
+      ...defaultMyCompProps,
+      ...stored,
+    };
+  }, [video.inputProps]);
+
+  // Editable props state
+  const [editableProps, setEditableProps] =
+    useState<CompositionPropsType>(initialProps);
+  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(
+    video.asset?.id ?? null,
+  );
+
+  // Get selected asset info
+  const selectedAsset = useMemo(
+    () => assets.find((a) => a.id === selectedAssetId) ?? null,
+    [assets, selectedAssetId],
+  );
+
+  // Combined props for the player (with asset info)
+  const playerProps = useMemo(
+    () => ({
+      ...editableProps,
+      assetName: selectedAsset?.name,
+      assetUrl: selectedAsset?.url,
+    }),
+    [editableProps, selectedAsset],
+  );
+
+  const handlePropsChange = useCallback(
+    (updates: Partial<CompositionPropsType>) => {
+      setEditableProps((prev) => ({ ...prev, ...updates }));
+    },
+    [],
+  );
+
+  const handleAssetSelect = useCallback((assetId: string | null) => {
+    setSelectedAssetId(assetId);
+  }, []);
 
   const statusConfig = {
     rendering: {
@@ -183,7 +267,7 @@ export const VideoPageClient: React.FC<VideoPageClientProps> = ({ video }) => {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-[1200px] mx-auto">
+    <div className="p-6 md:p-8 max-w-[1600px] mx-auto">
       <Breadcrumbs
         items={[
           {
@@ -231,46 +315,108 @@ export const VideoPageClient: React.FC<VideoPageClientProps> = ({ video }) => {
         </div>
       </div>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[1fr,320px]">
-        {/* Video Player / Preview */}
-        <div>
+      {/* Two Column Layout */}
+      <div className="mt-8 grid gap-6 lg:grid-cols-[380px,1fr]">
+        {/* Left Panel - Editor Tabs */}
+        <div className="h-[600px] lg:h-[calc(100vh-280px)] min-h-[500px]">
+          <VideoEditorTabs
+            videoId={video.id}
+            props={editableProps}
+            onPropsChange={handlePropsChange}
+            assets={assets}
+            selectedAssetId={selectedAssetId}
+            onAssetSelect={handleAssetSelect}
+            isAiConfigured={isAiConfigured}
+          />
+        </div>
+
+        {/* Right Panel - Video Preview / Player */}
+        <div className="space-y-4">
+          {/* Toggle between preview and rendered video */}
+          {video.status === "ready" && video.renderUrl && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowPreview(false)}
+                className={`px-3 py-1.5 text-sm rounded-geist transition-colors ${
+                  !showPreview
+                    ? "bg-foreground text-background"
+                    : "border border-unfocused-border-color hover:border-focused-border-color"
+                }`}
+              >
+                Rendered Video
+              </button>
+              <button
+                onClick={() => setShowPreview(true)}
+                className={`px-3 py-1.5 text-sm rounded-geist transition-colors ${
+                  showPreview
+                    ? "bg-foreground text-background"
+                    : "border border-unfocused-border-color hover:border-focused-border-color"
+                }`}
+              >
+                <PlayIcon className="w-4 h-4 inline mr-1.5" />
+                Live Preview
+              </button>
+            </div>
+          )}
+
+          {/* Video Display */}
           <div className="relative aspect-video bg-black rounded-geist overflow-hidden border border-unfocused-border-color">
-            {video.status === "ready" && video.renderUrl ? (
+            {showPreview || video.status !== "ready" ? (
+              /* Live Preview with Remotion Player */
+              video.status === "rendering" ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+                  <div className="w-12 h-12 border-2 border-white border-t-transparent rounded-full animate-spin mb-4" />
+                  <p className="text-sm">Rendering in progress...</p>
+                  <p className="text-xs text-white/60 mt-2">
+                    You can edit below and re-render when ready
+                  </p>
+                </div>
+              ) : video.status === "failed" ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+                  <svg
+                    className="w-12 h-12 opacity-50 mb-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <p className="text-sm">Render failed</p>
+                </div>
+              ) : (
+                <Player
+                  component={Main}
+                  inputProps={playerProps}
+                  durationInFrames={DURATION_IN_FRAMES}
+                  fps={VIDEO_FPS}
+                  compositionHeight={VIDEO_HEIGHT}
+                  compositionWidth={VIDEO_WIDTH}
+                  style={{ width: "100%" }}
+                  controls
+                  autoPlay
+                  loop
+                />
+              )
+            ) : (
+              /* Rendered Video */
               <video
-                src={video.renderUrl}
+                src={video.renderUrl!}
                 className="w-full h-full object-contain"
                 controls
                 autoPlay
                 playsInline
               />
-            ) : video.status === "rendering" ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
-                <div className="w-12 h-12 border-2 border-white border-t-transparent rounded-full animate-spin mb-4" />
-                <p className="text-sm">Rendering in progress...</p>
-              </div>
-            ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
-                <svg
-                  className="w-12 h-12 opacity-50 mb-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                <p className="text-sm">Render failed</p>
-              </div>
             )}
           </div>
 
-          {/* Action Buttons */}
-          {video.status === "ready" && video.renderUrl && (
-            <div className="mt-4 flex items-center gap-3">
+          {/* Action Buttons for Ready Videos */}
+          {video.status === "ready" && video.renderUrl && !showPreview && (
+            <div className="flex items-center gap-3">
               <a
                 href={video.renderUrl}
                 download
@@ -293,71 +439,42 @@ export const VideoPageClient: React.FC<VideoPageClientProps> = ({ video }) => {
               </button>
             </div>
           )}
-        </div>
 
-        {/* Metadata Sidebar */}
-        <div className="space-y-6">
-          {/* Status Card */}
-          <div className="border border-unfocused-border-color rounded-geist p-4">
-            <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">
-              Status
-            </h3>
-            <p className="text-sm text-foreground">
-              {statusConfig[video.status].description}
-            </p>
-          </div>
+          {/* Metadata */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            {/* Status Card */}
+            <div className="border border-unfocused-border-color rounded-geist p-4">
+              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                Status
+              </h3>
+              <p className="text-sm text-foreground">
+                {statusConfig[video.status].description}
+              </p>
+            </div>
 
-          {/* Details Card */}
-          <div className="border border-unfocused-border-color rounded-geist p-4">
-            <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">
-              Details
-            </h3>
-            <dl className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Created</dt>
-                <dd className="text-foreground">
-                  {formatDate(video.createdAt)}
-                </dd>
-              </div>
-              {video.size && (
+            {/* Details Card */}
+            <div className="border border-unfocused-border-color rounded-geist p-4">
+              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                Details
+              </h3>
+              <dl className="space-y-1.5 text-sm">
                 <div className="flex justify-between">
-                  <dt className="text-muted-foreground">File Size</dt>
-                  <dd className="text-foreground">{formatBytes(video.size)}</dd>
-                </div>
-              )}
-              {video.asset && (
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Asset</dt>
-                  <dd className="text-foreground truncate max-w-[150px]">
-                    {video.asset.name}
+                  <dt className="text-muted-foreground">Created</dt>
+                  <dd className="text-foreground">
+                    {formatDate(video.createdAt)}
                   </dd>
                 </div>
-              )}
-            </dl>
-          </div>
-
-          {/* Asset Preview */}
-          {video.asset && (
-            <div className="border border-unfocused-border-color rounded-geist overflow-hidden">
-              <div className="p-3 border-b border-unfocused-border-color">
-                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                  Asset Used
-                </h3>
-              </div>
-              <div className="aspect-video bg-muted">
-                <img
-                  src={video.asset.url}
-                  alt={video.asset.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="p-3">
-                <p className="text-sm text-foreground truncate">
-                  {video.asset.name}
-                </p>
-              </div>
+                {video.size && (
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">File Size</dt>
+                    <dd className="text-foreground">
+                      {formatBytes(video.size)}
+                    </dd>
+                  </div>
+                )}
+              </dl>
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
