@@ -2,7 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import { and, desc, eq } from "drizzle-orm";
 import { getServerSession } from "@/lib/server-session";
 import { getDb } from "@/lib/db";
-import { project, projectAsset, team } from "@/db/schema";
+import { project, projectAsset, team, teamAiSettings } from "@/db/schema";
 import { NewVideoClient } from "./NewVideoClient";
 import type { ProjectAssetRecord } from "@/types/schema";
 
@@ -20,6 +20,7 @@ interface ProjectData {
     slug: string;
   };
   assets: ProjectAssetRecord[];
+  isAiConfigured: boolean;
 }
 
 async function getProjectData(
@@ -61,6 +62,15 @@ async function getProjectData(
     .where(eq(projectAsset.projectId, projectRecord.id))
     .orderBy(desc(projectAsset.createdAt));
 
+  // Check if AI is configured for this team
+  const aiSettings = await db
+    .select({ id: teamAiSettings.id })
+    .from(teamAiSettings)
+    .where(eq(teamAiSettings.teamId, projectRecord.team.id))
+    .limit(1);
+
+  const isAiConfigured = aiSettings.length > 0;
+
   return {
     id: projectRecord.id,
     name: projectRecord.name,
@@ -76,6 +86,7 @@ async function getProjectData(
       url: a.url,
       createdAt: a.createdAt.toISOString(),
     })),
+    isAiConfigured,
   };
 }
 

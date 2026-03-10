@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Player } from "@remotion/player";
 import { Main } from "@/remotion/MyComp/Main";
@@ -11,9 +11,10 @@ import {
   VIDEO_WIDTH,
   defaultMyCompProps,
 } from "@/types/constants";
+import type { CompositionPropsType } from "@/types/constants";
 import { RenderControls } from "@/components/RenderControls";
 import { Breadcrumbs } from "@/components/dashboard/Breadcrumbs";
-import { AssetManager } from "@/components/dashboard/AssetManager";
+import { VideoEditorTabs } from "@/components/video/VideoEditorTabs";
 import type { ProjectAssetRecord } from "@/types/schema";
 
 interface ProjectData {
@@ -26,13 +27,14 @@ interface ProjectData {
     slug: string;
   };
   assets: ProjectAssetRecord[];
+  isAiConfigured: boolean;
 }
 
 interface NewVideoClientProps {
   project: ProjectData;
 }
 
-const ChevronDownIcon: React.FC<{ className?: string }> = ({ className }) => (
+const PanelLeftIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg
     className={className}
     viewBox="0 0 24 24"
@@ -42,11 +44,14 @@ const ChevronDownIcon: React.FC<{ className?: string }> = ({ className }) => (
     strokeLinecap="round"
     strokeLinejoin="round"
   >
-    <polyline points="6 9 12 15 18 9" />
+    <rect width="18" height="18" x="3" y="3" rx="2" />
+    <path d="M9 3v18" />
   </svg>
 );
 
-const ChevronUpIcon: React.FC<{ className?: string }> = ({ className }) => (
+const PanelLeftCloseIcon: React.FC<{ className?: string }> = ({
+  className,
+}) => (
   <svg
     className={className}
     viewBox="0 0 24 24"
@@ -56,166 +61,186 @@ const ChevronUpIcon: React.FC<{ className?: string }> = ({ className }) => (
     strokeLinecap="round"
     strokeLinejoin="round"
   >
-    <polyline points="18 15 12 9 6 15" />
+    <rect width="18" height="18" x="3" y="3" rx="2" />
+    <path d="M9 3v18" />
+    <path d="m16 15-3-3 3-3" />
   </svg>
-);
-
-const SectionHeader: React.FC<{
-  title: string;
-  description?: string;
-  action?: React.ReactNode;
-}> = ({ title, description, action }) => (
-  <div className="flex items-start justify-between gap-4 mb-4">
-    <div>
-      <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-      {description && (
-        <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
-      )}
-    </div>
-    {action && <div className="shrink-0">{action}</div>}
-  </div>
 );
 
 export const NewVideoClient: React.FC<NewVideoClientProps> = ({ project }) => {
   const router = useRouter();
-  const [text, setText] = useState<string>("Hello, World!");
-  const [assets, setAssets] = useState<ProjectAssetRecord[]>(project.assets);
+  const [panelCollapsed, setPanelCollapsed] = useState(false);
+
+  // Separate title state for RenderControls compatibility
+  const [title, setTitle] = useState<string>(defaultMyCompProps.title);
+
+  // Editable props state - starting with defaults
+  const [editableProps, setEditableProps] = useState<CompositionPropsType>({
+    ...defaultMyCompProps,
+    projectName: project.name,
+  });
+
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(
     project.assets[0]?.id ?? null,
   );
-  const [assetsExpanded, setAssetsExpanded] = useState(true);
 
+  // Sync title changes to editableProps
+  useEffect(() => {
+    setEditableProps((prev) => ({ ...prev, title }));
+  }, [title]);
+
+  // Get selected asset info
   const selectedAsset = useMemo(
-    () => assets.find((a) => a.id === selectedAssetId) ?? null,
-    [assets, selectedAssetId],
+    () => project.assets.find((a) => a.id === selectedAssetId) ?? null,
+    [project.assets, selectedAssetId],
   );
 
-  const inputProps = useMemo(
+  // Combined props for the player (with asset info)
+  const playerProps = useMemo(
     () => ({
-      ...defaultMyCompProps,
-      title: text,
-      projectName: project.name,
+      ...editableProps,
       assetName: selectedAsset?.name,
       assetUrl: selectedAsset?.url,
     }),
-    [text, project.name, selectedAsset?.name, selectedAsset?.url],
+    [editableProps, selectedAsset],
   );
+
+  const handlePropsChange = useCallback(
+    (updates: Partial<CompositionPropsType>) => {
+      // If title is being updated, also update the title state
+      if (updates.title !== undefined) {
+        setTitle(updates.title);
+      }
+      setEditableProps((prev) => ({ ...prev, ...updates }));
+    },
+    [],
+  );
+
+  const handleAssetSelect = useCallback((assetId: string | null) => {
+    setSelectedAssetId(assetId);
+  }, []);
 
   const handleRendered = useCallback(
     (videoId: string) => {
-      // Navigate to the new video page
       router.push(`/${project.team.slug}/${project.slug}/${videoId}`);
     },
     [router, project.team.slug, project.slug],
   );
 
-  const handleAssetsChange = useCallback((newAssets: ProjectAssetRecord[]) => {
-    setAssets(newAssets);
-  }, []);
+  // Convert assets to the format expected by VideoEditorTabs
+  const assetsForTabs = useMemo(
+    () =>
+      project.assets.map((a) => ({
+        id: a.id,
+        name: a.name,
+        url: a.url,
+        type: "image",
+      })),
+    [project.assets],
+  );
 
   return (
-    <div className="p-6 md:p-8 max-w-[1600px] mx-auto">
-      <Breadcrumbs
-        items={[
-          { label: project.team.name, href: `/${project.team.slug}` },
-          {
-            label: project.name,
-            href: `/${project.team.slug}/${project.slug}`,
-          },
-          {
-            label: "New Video",
-            href: `/${project.team.slug}/${project.slug}/new`,
-          },
-        ]}
-      />
-
-      <div className="mt-6">
-        <h1 className="text-2xl font-semibold text-foreground">
-          Create New Video
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Configure your video and render it
-        </p>
+    <div className="h-[calc(100vh-64px)] flex flex-col">
+      {/* Header */}
+      <div className="shrink-0 p-4 md:p-6 border-b border-unfocused-border-color">
+        <Breadcrumbs
+          items={[
+            { label: project.team.name, href: `/${project.team.slug}` },
+            {
+              label: project.name,
+              href: `/${project.team.slug}/${project.slug}`,
+            },
+            {
+              label: "New Video",
+              href: `/${project.team.slug}/${project.slug}/new`,
+            },
+          ]}
+        />
+        <div className="mt-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-semibold text-foreground">
+              Create New Video
+            </h1>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Configure your video and render it
+            </p>
+          </div>
+          <button
+            onClick={() => setPanelCollapsed(!panelCollapsed)}
+            className="p-2 rounded-geist border border-unfocused-border-color hover:border-focused-border-color hover:bg-muted transition-colors"
+            title={panelCollapsed ? "Show panel" : "Hide panel"}
+          >
+            {panelCollapsed ? (
+              <PanelLeftIcon className="w-5 h-5" />
+            ) : (
+              <PanelLeftCloseIcon className="w-5 h-5" />
+            )}
+          </button>
+        </div>
       </div>
 
-      <div className="mt-8 grid gap-8 xl:grid-cols-[1fr,360px]">
-        {/* Left Column - Preview & Controls */}
-        <div className="space-y-8">
-          {/* Preview Section */}
-          <section>
-            <SectionHeader
-              title="Preview"
-              description="Live preview of your video composition"
+      {/* Main Content - Two Column Layout */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Panel - Editor Tabs */}
+        <div
+          className={`shrink-0 border-r border-unfocused-border-color transition-all duration-300 overflow-hidden ${
+            panelCollapsed ? "w-0 border-r-0" : "w-full lg:w-[380px]"
+          }`}
+        >
+          <div className="h-full w-[380px]">
+            <VideoEditorTabs
+              videoId="new"
+              props={editableProps}
+              onPropsChange={handlePropsChange}
+              assets={assetsForTabs}
+              selectedAssetId={selectedAssetId}
+              onAssetSelect={handleAssetSelect}
+              isAiConfigured={project.isAiConfigured}
             />
-            <div className="border border-unfocused-border-color rounded-geist overflow-hidden bg-black shadow-lg">
-              <Player
-                component={Main}
-                inputProps={inputProps}
-                durationInFrames={DURATION_IN_FRAMES}
-                fps={VIDEO_FPS}
-                compositionHeight={VIDEO_HEIGHT}
-                compositionWidth={VIDEO_WIDTH}
-                style={{ width: "100%" }}
-                controls
-                autoPlay
-                loop
-              />
-            </div>
-          </section>
-
-          {/* Render Settings Section */}
-          <section>
-            <SectionHeader
-              title="Render Settings"
-              description="Configure and render your video"
-            />
-            <RenderControls
-              text={text}
-              setText={setText}
-              inputProps={inputProps}
-              projectId={project.id}
-              assetId={selectedAssetId}
-              projectName={project.name}
-              onRendered={handleRendered}
-            />
-          </section>
+          </div>
         </div>
 
-        {/* Right Column - Collapsible Asset Manager */}
-        <aside className="xl:border-l xl:border-unfocused-border-color xl:pl-8">
-          <div className="sticky top-6">
-            {/* Collapsible Header */}
-            <button
-              onClick={() => setAssetsExpanded(!assetsExpanded)}
-              className="w-full flex items-center justify-between p-3 bg-muted/50 rounded-geist border border-unfocused-border-color hover:border-focused-border-color transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-foreground">Assets</span>
-                <span className="text-xs text-muted-foreground">
-                  ({assets.length})
-                </span>
-              </div>
-              {assetsExpanded ? (
-                <ChevronUpIcon className="w-4 h-4 text-muted-foreground" />
-              ) : (
-                <ChevronDownIcon className="w-4 h-4 text-muted-foreground" />
-              )}
-            </button>
-
-            {/* Collapsible Content */}
-            {assetsExpanded && (
-              <div className="mt-4">
-                <AssetManager
-                  projectId={project.id}
-                  assets={assets}
-                  selectedAssetId={selectedAssetId}
-                  onSelectAsset={setSelectedAssetId}
-                  onAssetsChange={handleAssetsChange}
+        {/* Right Panel - Video Preview & Render Controls */}
+        <div className="flex-1 overflow-auto">
+          <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
+            {/* Video Preview */}
+            <div>
+              <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">
+                Preview
+              </h2>
+              <div className="border border-unfocused-border-color rounded-geist overflow-hidden bg-black shadow-lg">
+                <Player
+                  component={Main}
+                  inputProps={playerProps}
+                  durationInFrames={DURATION_IN_FRAMES}
+                  fps={VIDEO_FPS}
+                  compositionHeight={VIDEO_HEIGHT}
+                  compositionWidth={VIDEO_WIDTH}
+                  style={{ width: "100%" }}
+                  controls
+                  autoPlay
+                  loop
                 />
               </div>
-            )}
+            </div>
+
+            {/* Render Controls */}
+            <div>
+              <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">
+                Render
+              </h2>
+              <RenderControls
+                text={title}
+                setText={setTitle}
+                inputProps={playerProps}
+                projectId={project.id}
+                assetId={selectedAssetId}
+                projectName={project.name}
+                onRendered={handleRendered}
+              />
+            </div>
           </div>
-        </aside>
+        </div>
       </div>
     </div>
   );
