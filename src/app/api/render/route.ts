@@ -5,9 +5,11 @@ import {
   uploadToVercelBlob,
 } from "@remotion/vercel";
 import { waitUntil } from "@vercel/functions";
+import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
-import { prisma } from "../../../lib/prisma";
+import { project, projectAsset, team, video } from "../../../db/schema";
+import { getDb } from "../../../lib/db";
 import { getRequestSession } from "../../../lib/session";
 import { COMP_NAME } from "../../../../types/constants";
 import { RenderRequest } from "../../../../types/schema";
@@ -46,40 +48,44 @@ export async function POST(req: Request) {
     return NextResponse.json({ message }, { status: 400 });
   }
 
-  const project = await prisma.project.findFirst({
-    where: {
-      id: body.projectId,
-      team: {
-        ownerId: session.user.id,
-      },
-    },
-  });
+  const db = getDb();
+  const [projectRecord] = await db
+    .select({ id: project.id })
+    .from(project)
+    .innerJoin(team, eq(project.teamId, team.id))
+    .where(and(eq(project.id, body.projectId), eq(team.ownerId, session.user.id)))
+    .limit(1);
 
-  if (!project) {
+  if (!projectRecord) {
     return NextResponse.json({ message: "Project not found" }, { status: 404 });
   }
 
   if (body.assetId) {
-    const asset = await prisma.projectAsset.findFirst({
-      where: {
-        id: body.assetId,
-        projectId: body.projectId,
-      },
-    });
+    const [asset] = await db
+      .select({ id: projectAsset.id })
+      .from(projectAsset)
+      .where(
+        and(
+          eq(projectAsset.id, body.assetId),
+          eq(projectAsset.projectId, body.projectId),
+        ),
+      )
+      .limit(1);
 
     if (!asset) {
       return NextResponse.json({ message: "Asset not found" }, { status: 404 });
     }
   }
 
-  const video = await prisma.video.create({
-    data: {
+  const [createdVideo] = await db
+    .insert(video)
+    .values({
       projectId: body.projectId,
       assetId: body.assetId,
       title: body.inputProps.title,
       inputProps: body.inputProps,
-    },
-  });
+    })
+    .returning({ id: video.id });
 
   const encoder = new TextEncoder();
   const stream = new TransformStream();
@@ -157,26 +163,28 @@ export async function POST(req: Request) {
         access: "public",
       });
 
-      await prisma.video.update({
-        where: { id: video.id },
-        data: {
+      await db
+        .update(video)
+        .set({
           status: "ready",
           renderUrl: url,
           size,
-        },
-      });
+          updatedAt: new Date(),
+        })
+        .where(eq(video.id, createdVideo.id));
 
-      await send({ type: "done", url, size, videoId: video.id });
+      await send({ type: "done", url, size, videoId: createdVideo.id });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to render video";
       console.log(err);
-      await prisma.video.update({
-        where: { id: video.id },
-        data: {
+      await db
+        .update(video)
+        .set({
           status: "failed",
           errorMessage: message,
-        },
-      });
+          updatedAt: new Date(),
+        })
+        .where(eq(video.id, createdVideo.id));
       await send({ type: "error", message });
     } finally {
       await sandbox?.stop().catch(() => {});

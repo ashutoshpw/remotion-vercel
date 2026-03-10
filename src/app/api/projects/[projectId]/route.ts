@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { prisma } from "../../../../lib/prisma";
+import { and, desc, eq } from "drizzle-orm";
+import { project, projectAsset, team, video } from "../../../../db/schema";
+import { getDb } from "../../../../lib/db";
 import { getRequestSession } from "../../../../lib/session";
 import { type ProjectDetails } from "../../../../../types/schema";
 
@@ -62,60 +64,81 @@ export async function GET(
   const { projectId } = await context.params;
 
   try {
-    const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
+    const db = getDb();
+    const [projectRecord] = await db
+      .select({
+        id: project.id,
+        teamId: project.teamId,
+        name: project.name,
+        slug: project.slug,
+        description: project.description,
+        createdAt: project.createdAt,
+        updatedAt: project.updatedAt,
         team: {
-          ownerId: session.user.id,
+          id: team.id,
+          name: team.name,
+          slug: team.slug,
         },
-      },
-      include: {
-        team: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
-        },
-        assets: {
-          select: {
-            id: true,
-            name: true,
-            url: true,
-            createdAt: true,
-          },
-          orderBy: {
-            createdAt: "desc",
-          },
-        },
-        videos: {
-          select: {
-            id: true,
-            title: true,
-            status: true,
-            renderUrl: true,
-            size: true,
-            errorMessage: true,
-            createdAt: true,
-            asset: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-          orderBy: {
-            createdAt: "desc",
-          },
-        },
-      },
-    });
+      })
+      .from(project)
+      .innerJoin(team, eq(project.teamId, team.id))
+      .where(and(eq(project.id, projectId), eq(team.ownerId, session.user.id)))
+      .limit(1);
 
-    if (!project) {
+    if (!projectRecord) {
       return NextResponse.json({ message: "Project not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ project: serializeProjectDetails(project) });
+    const assets = await db
+      .select({
+        id: projectAsset.id,
+        name: projectAsset.name,
+        url: projectAsset.url,
+        createdAt: projectAsset.createdAt,
+      })
+      .from(projectAsset)
+      .where(eq(projectAsset.projectId, projectId))
+      .orderBy(desc(projectAsset.createdAt));
+
+    const videos = await db
+      .select({
+        id: video.id,
+        title: video.title,
+        status: video.status,
+        renderUrl: video.renderUrl,
+        size: video.size,
+        errorMessage: video.errorMessage,
+        createdAt: video.createdAt,
+        assetId: projectAsset.id,
+        assetName: projectAsset.name,
+      })
+      .from(video)
+      .leftJoin(projectAsset, eq(video.assetId, projectAsset.id))
+      .where(eq(video.projectId, projectId))
+      .orderBy(desc(video.createdAt));
+
+    return NextResponse.json({
+      project: serializeProjectDetails({
+        ...projectRecord,
+        assets,
+        videos: videos.map((currentVideo) => ({
+          id: currentVideo.id,
+          title: currentVideo.title,
+          status: currentVideo.status,
+          renderUrl: currentVideo.renderUrl,
+          size: currentVideo.size,
+          errorMessage: currentVideo.errorMessage,
+          createdAt: currentVideo.createdAt,
+          asset:
+            currentVideo.assetId && currentVideo.assetName
+              ? {
+                  id: currentVideo.assetId,
+                  name: currentVideo.assetName,
+                }
+              : null,
+        })),
+      }),
+    });
   } catch (error) {
     return NextResponse.json(
       { message: (error as Error).message },

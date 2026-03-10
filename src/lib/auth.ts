@@ -1,7 +1,8 @@
-import { prismaAdapter } from "better-auth/adapters/prisma";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { betterAuth } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
-import { prisma } from "./prisma";
+import { account, session, user, verification } from "../db/schema";
+import { getDb } from "./db";
 
 export const getAuth = () => {
   const productionSecret = process.env.BETTER_AUTH_SECRET;
@@ -16,8 +17,14 @@ export const getAuth = () => {
     trustedOrigins: process.env.NEXT_PUBLIC_APP_URL
       ? [process.env.NEXT_PUBLIC_APP_URL]
       : undefined,
-    database: prismaAdapter(prisma, {
-      provider: "postgresql",
+    database: drizzleAdapter(getDb(), {
+      provider: "pg",
+      schema: {
+        user,
+        session,
+        account,
+        verification,
+      },
     }),
     emailAndPassword: {
       enabled: true,

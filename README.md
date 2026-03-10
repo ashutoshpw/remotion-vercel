@@ -15,7 +15,7 @@ This app turns the Remotion Vercel template into a small authenticated workspace
 Copy `.env.example` to `.env.local` and fill in:
 
 ```bash
-DATABASE_URL=postgresql://...
+DATABASE_URL=postgresql://<user>:<password>@<neon-host>/<db>?sslmode=require
 BETTER_AUTH_SECRET=replace-me-with-a-long-random-secret
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 BETTER_AUTH_URL=http://localhost:3000
@@ -26,9 +26,9 @@ BLOB_READ_WRITE_TOKEN=vercel_blob_rw_...
 
 To make the app production-ready on Vercel:
 
-1. Provision a Postgres database (for example Vercel Postgres, Neon, or Supabase)
-2. Set `DATABASE_URL`, `BETTER_AUTH_SECRET`, `NEXT_PUBLIC_APP_URL`, and `BLOB_READ_WRITE_TOKEN`
-3. Run database migrations or push the schema before first use:
+1. Provision a **Neon Postgres** database
+2. Set `DATABASE_URL`, `BETTER_AUTH_SECRET`, `NEXT_PUBLIC_APP_URL`, `BETTER_AUTH_URL`, and `BLOB_READ_WRITE_TOKEN`
+3. Push the Drizzle schema before first use:
 
 ```bash
 npm run db:push
@@ -41,12 +41,13 @@ npm install
 npm run dev
 npm run lint
 npm run build
+npm run db:generate
 npm run db:push
 ```
 
 ## Local development
 
-1. Create a Postgres database and add your connection string to `.env.local`
+1. Create a Neon database and copy its connection string into `.env.local` as `DATABASE_URL`
 2. Run `npm install`
 3. Run `npm run db:push`
 4. Start the app with `npm run dev`
@@ -55,9 +56,37 @@ npm run db:push
 ## Deploy to Vercel
 
 - Attach a **public Blob store** to the project so `BLOB_READ_WRITE_TOKEN` is available
-- Add the Postgres `DATABASE_URL`
+- Create a **Neon** database and add its `DATABASE_URL` to the Vercel project
 - Add `BETTER_AUTH_SECRET`, `NEXT_PUBLIC_APP_URL`, and `BETTER_AUTH_URL`
-- Run `npm run db:push` or `prisma migrate deploy` against the production database before accepting traffic
+- After the env vars are set, run `npm run db:push` against the production database before accepting traffic
+
+## Deployment checklist
+
+Use this sequence when deploying the repo:
+
+1. **Create Neon database**
+   - Create a new project/database in Neon
+   - Copy the serverless Postgres connection string into `DATABASE_URL`
+2. **Configure Vercel env vars**
+   - `DATABASE_URL`
+   - `BETTER_AUTH_SECRET`
+   - `NEXT_PUBLIC_APP_URL`
+   - `BETTER_AUTH_URL`
+   - `BLOB_READ_WRITE_TOKEN`
+3. **Push schema**
+   ```bash
+   npm run db:push
+   ```
+4. **Build / deploy**
+   ```bash
+   npm run build
+   ```
+5. **Smoke test**
+   - Create an account
+   - Create a team
+   - Create a project
+   - Save an asset
+   - Trigger a render
 
 ## Notes
 

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { and, count, desc, eq, sql } from "drizzle-orm";
 import { ZodError } from "zod";
-import { prisma } from "../../../lib/prisma";
+import { project, projectAsset, team, video } from "../../../db/schema";
+import { getDb } from "../../../lib/db";
 import { getRequestSession } from "../../../lib/session";
 import { makeUniqueSlug } from "../../../lib/slugify";
 import { ProjectRequest, type ProjectSummary } from "../../../../types/schema";
@@ -21,12 +23,13 @@ const serializeProject = (project: {
 });
 
 const getAccessibleTeam = async (teamId: string, userId: string) => {
-  return prisma.team.findFirst({
-    where: {
-      id: teamId,
-      ownerId: userId,
-    },
-  });
+  const db = getDb();
+  const [record] = await db
+    .select({ id: team.id })
+    .from(team)
+    .where(and(eq(team.id, teamId), eq(team.ownerId, userId)))
+    .limit(1);
+  return record ?? null;
 };
 
 export async function GET(request: Request) {
@@ -49,13 +52,59 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: "Team not found" }, { status: 404 });
     }
 
-    const projects = await prisma.project.findMany({
-      where: { teamId },
-      include: { _count: { select: { assets: true, videos: true } } },
-      orderBy: { updatedAt: "desc" },
-    });
+    const db = getDb();
+    const assetCounts = db
+      .select({
+        projectId: projectAsset.projectId,
+        count: count(projectAsset.id).as("count"),
+      })
+      .from(projectAsset)
+      .groupBy(projectAsset.projectId)
+      .as("asset_counts");
+    const videoCounts = db
+      .select({
+        projectId: video.projectId,
+        count: count(video.id).as("count"),
+      })
+      .from(video)
+      .groupBy(video.projectId)
+      .as("video_counts");
 
-    return NextResponse.json({ projects: projects.map(serializeProject) });
+    const projects = await db
+      .select({
+        id: project.id,
+        teamId: project.teamId,
+        name: project.name,
+        slug: project.slug,
+        description: project.description,
+        createdAt: project.createdAt,
+        updatedAt: project.updatedAt,
+        assetCount: sql<number>`coalesce(${assetCounts.count}, 0)`,
+        videoCount: sql<number>`coalesce(${videoCounts.count}, 0)`,
+      })
+      .from(project)
+      .leftJoin(assetCounts, eq(assetCounts.projectId, project.id))
+      .leftJoin(videoCounts, eq(videoCounts.projectId, project.id))
+      .where(eq(project.teamId, teamId))
+      .orderBy(desc(project.updatedAt));
+
+    return NextResponse.json({
+      projects: projects.map((currentProject) =>
+        serializeProject({
+          id: currentProject.id,
+          teamId: currentProject.teamId,
+          name: currentProject.name,
+          slug: currentProject.slug,
+          description: currentProject.description,
+          createdAt: currentProject.createdAt,
+          updatedAt: currentProject.updatedAt,
+          _count: {
+            assets: Number(currentProject.assetCount),
+            videos: Number(currentProject.videoCount),
+          },
+        }),
+      ),
+    });
   } catch (error) {
     return NextResponse.json(
       { message: (error as Error).message },
@@ -73,6 +122,7 @@ export async function POST(request: Request) {
 
   try {
     const payload = ProjectRequest.parse(await request.json());
+    const db = getDb();
     const team = await getAccessibleTeam(payload.teamId, session.user.id);
 
     if (!team) {
@@ -80,28 +130,46 @@ export async function POST(request: Request) {
     }
 
     const slug = await makeUniqueSlug(payload.name, async (candidate) => {
-      const project = await prisma.project.findUnique({
-        where: {
-          teamId_slug: {
-            teamId: payload.teamId,
-            slug: candidate,
-          },
-        },
-      });
-      return Boolean(project);
+      const [existingProject] = await db
+        .select({ id: project.id })
+        .from(project)
+        .where(
+          and(eq(project.teamId, payload.teamId), eq(project.slug, candidate)),
+        )
+        .limit(1);
+      return Boolean(existingProject);
     });
 
-    const project = await prisma.project.create({
-      data: {
+    const [createdProject] = await db
+      .insert(project)
+      .values({
         teamId: payload.teamId,
         name: payload.name,
         slug,
         description: payload.description ?? null,
-      },
-      include: { _count: { select: { assets: true, videos: true } } },
-    });
+      })
+      .returning({
+        id: project.id,
+        teamId: project.teamId,
+        name: project.name,
+        slug: project.slug,
+        description: project.description,
+        createdAt: project.createdAt,
+        updatedAt: project.updatedAt,
+      });
 
-    return NextResponse.json({ project: serializeProject(project) }, { status: 201 });
+    return NextResponse.json(
+      {
+        project: serializeProject({
+          ...createdProject,
+          _count: {
+            assets: 0,
+            videos: 0,
+          },
+        }),
+      },
+      { status: 201 },
+    );
   } catch (error) {
     const status = error instanceof ZodError ? 400 : 503;
     return NextResponse.json({ message: (error as Error).message }, { status });
