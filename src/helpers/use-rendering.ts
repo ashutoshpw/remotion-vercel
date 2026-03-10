@@ -20,18 +20,30 @@ export type State =
   | {
       url: string;
       size: number;
+      videoId: string;
       status: "done";
     };
 
 export const useRendering = (
   id: string,
+  projectId: string | null,
+  assetId: string | null,
   inputProps: z.infer<typeof CompositionProps>,
+  onRendered?: () => Promise<void> | void,
 ) => {
   const [state, setState] = useState<State>({
     status: "init",
   });
 
   const renderMedia = useCallback(async () => {
+    if (!projectId) {
+      setState({
+        status: "error",
+        error: new Error("Create or select a project before rendering."),
+      });
+      return;
+    }
+
     setState({
       status: "invoking",
       phase: "Starting...",
@@ -43,11 +55,24 @@ export const useRendering = (
       const response = await fetch("/api/render", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ id, inputProps }),
+        body: JSON.stringify({ id, projectId, assetId: assetId ?? undefined, inputProps }),
       });
 
-      if (!response.ok || !response.body) {
-        throw new Error("Failed to start render");
+      if (!response.ok) {
+        let message = "Failed to start render";
+        try {
+          const data = (await response.json()) as { message?: string };
+          if (data.message) {
+            message = data.message;
+          }
+        } catch {
+          // Ignore JSON parsing errors and keep the fallback message.
+        }
+        throw new Error(message);
+      }
+
+      if (!response.body) {
+        throw new Error("Render stream was not available.");
       }
 
       const reader = response.body.getReader();
@@ -85,7 +110,9 @@ export const useRendering = (
                 status: "done",
                 url: message.url,
                 size: message.size,
+                videoId: message.videoId,
               });
+              await onRendered?.();
               break;
             case "error":
               setState({
@@ -105,7 +132,7 @@ export const useRendering = (
         error: err as Error,
       });
     }
-  }, [id, inputProps]);
+  }, [assetId, id, inputProps, onRendered, projectId]);
 
   const undo = useCallback(() => {
     setState({ status: "init" });
