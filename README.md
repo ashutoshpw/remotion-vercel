@@ -31,26 +31,26 @@ To make the app production-ready on Vercel:
 3. Push the Drizzle schema before first use:
 
 ```bash
-npm run db:push
+bun run db:push
 ```
 
 ## Commands
 
 ```bash
-npm install
-npm run dev
-npm run lint
-npm run build
-npm run db:generate
-npm run db:push
+bun install
+bun run dev
+bun run lint
+bun run build
+bun run db:generate
+bun run db:push
 ```
 
 ## Local development
 
 1. Create a Neon database and copy its connection string into `.env.local` as `DATABASE_URL`
-2. Run `npm install`
-3. Run `npm run db:push`
-4. Start the app with `npm run dev`
+2. Run `bun install`
+3. Run `bun run db:push`
+4. Start the app with `bun run dev`
 5. Create an account, then create a team, a project, and optionally add a reusable image asset
 
 ## Deploy to Vercel
@@ -58,7 +58,7 @@ npm run db:push
 - Attach a **public Blob store** to the project so `BLOB_READ_WRITE_TOKEN` is available
 - Create a **Neon** database and add its `DATABASE_URL` to the Vercel project
 - Add `BETTER_AUTH_SECRET`, `NEXT_PUBLIC_APP_URL`, and `BETTER_AUTH_URL`
-- After the env vars are set, run `npm run db:push` against the production database before accepting traffic
+- After the env vars are set, run `bun run db:push` against the production database before accepting traffic
 
 ## Deployment checklist
 
@@ -75,11 +75,11 @@ Use this sequence when deploying the repo:
    - `BLOB_READ_WRITE_TOKEN`
 3. **Push schema**
    ```bash
-   npm run db:push
+   bun run db:push
    ```
 4. **Build / deploy**
    ```bash
-   npm run build
+   bun run build
    ```
 5. **Smoke test**
    - Create an account
