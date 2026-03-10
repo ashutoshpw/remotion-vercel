@@ -1,19 +1,23 @@
-import React, { useMemo } from "react";
+import React from "react";
 
 export const ProgressBar: React.FC<{
   progress: number;
-}> = ({ progress }) => {
-  const fill: React.CSSProperties = useMemo(() => {
-    return {
-      width: `${progress * 100}%`,
-    };
-  }, [progress]);
+  size?: "sm" | "md";
+}> = ({ progress, size = "md" }) => {
+  const height = size === "sm" ? "h-1.5" : "h-2";
 
   return (
-    <div>
-      <div className="w-full h-2.5 rounded-md overflow-hidden appearance-none bg-unfocused-border-color mt-2.5 mb-6">
-        <div className="bg-foreground h-2.5" style={fill}></div>
-      </div>
+    <div
+      className={`w-full ${height} rounded-full overflow-hidden bg-muted`}
+      role="progressbar"
+      aria-valuenow={Math.round(progress * 100)}
+      aria-valuemin={0}
+      aria-valuemax={100}
+    >
+      <div
+        className={`${height} rounded-full bg-geist-success transition-all duration-300 ease-out`}
+        style={{ width: `${progress * 100}%` }}
+      />
     </div>
   );
 };

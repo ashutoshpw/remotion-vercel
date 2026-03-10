@@ -24,6 +24,15 @@ export const RenderRequest = z.object({
   inputProps: CompositionProps,
 });
 
+export const TeamMemberInviteRequest = z.object({
+  email: z.string().email(),
+  role: z.enum(["admin", "member"]).default("member"),
+});
+
+export const TeamMemberUpdateRequest = z.object({
+  role: z.enum(["admin", "member"]),
+});
+
 export type RenderResponse =
   | {
       type: "error";
@@ -102,4 +111,54 @@ export type ProjectDetails = {
   };
   assets: ProjectAssetRecord[];
   videos: ProjectVideoRecord[];
+};
+
+export type TeamMemberRole = "owner" | "admin" | "member";
+
+export type TeamMemberRecord = {
+  id: string;
+  userId: string;
+  role: TeamMemberRole;
+  joinedAt: string | null;
+  createdAt: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    image: string | null;
+  };
+};
+
+export type VideoDetails = {
+  id: string;
+  projectId: string;
+  title: string;
+  status: "rendering" | "ready" | "failed";
+  renderUrl: string | null;
+  size: number | null;
+  inputProps: Record<string, unknown>;
+  errorMessage: string | null;
+  createdAt: string;
+  updatedAt: string;
+  project: {
+    id: string;
+    name: string;
+    slug: string;
+    team: {
+      id: string;
+      name: string;
+      slug: string;
+    };
+  };
+  asset: {
+    id: string;
+    name: string;
+    url: string;
+  } | null;
+};
+
+export type AssetWithUsage = ProjectAssetRecord & {
+  _count: {
+    videos: number;
+  };
 };

@@ -7,21 +7,6 @@ import { TeamSwitcher } from "./TeamSwitcher";
 import { NavUser } from "./NavUser";
 import { TeamSummary, ProjectSummary } from "@/types/schema";
 
-const HomeIcon: React.FC<{ className?: string }> = ({ className }) => (
-  <svg
-    className={className}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-    <polyline points="9 22 9 12 15 12 15 22" />
-  </svg>
-);
-
 const FolderIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg
     className={className}
@@ -51,21 +36,6 @@ const SettingsIcon: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
-const PlusIcon: React.FC<{ className?: string }> = ({ className }) => (
-  <svg
-    className={className}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <line x1="12" y1="5" x2="12" y2="19" />
-    <line x1="5" y1="12" x2="19" y2="12" />
-  </svg>
-);
-
 const VideoIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg
     className={className}
@@ -78,6 +48,39 @@ const VideoIcon: React.FC<{ className?: string }> = ({ className }) => (
   >
     <polygon points="23 7 16 12 23 17 23 7" />
     <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+  </svg>
+);
+
+const UsersIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+  </svg>
+);
+
+const ImageIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+    <circle cx="8.5" cy="8.5" r="1.5" />
+    <polyline points="21 15 16 10 5 21" />
   </svg>
 );
 
@@ -109,6 +112,21 @@ const ChevronRightIcon: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
+const ArrowLeftIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="19" y1="12" x2="5" y2="12" />
+    <polyline points="12 19 5 12 12 5" />
+  </svg>
+);
+
 interface SidebarProps {
   teams: TeamSummary[];
   currentTeam: TeamSummary | null;
@@ -132,13 +150,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
     return pathname === path;
   };
 
+  const isActivePrefix = (path: string) => {
+    return pathname.startsWith(path);
+  };
+
   const navItemClass = (active: boolean) =>
     `flex items-center gap-3 px-3 py-2 rounded-geist text-sm transition-colors ${
       active
-        ? "bg-muted font-medium"
+        ? "bg-muted font-medium text-foreground"
         : "text-muted-foreground hover:bg-muted hover:text-foreground"
     }`;
 
+  // Collapsed sidebar
   if (collapsed) {
     return (
       <aside className="sidebar collapsed h-screen border-r border-unfocused-border-color bg-background flex flex-col">
@@ -153,7 +176,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Navigation */}
         <nav className="flex-1 p-2 space-y-1">
-          {currentTeam && (
+          {currentTeam && !currentProject && (
             <>
               <Link
                 href={`/${currentTeam.slug}`}
@@ -164,7 +187,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 }`}
                 title="Projects"
               >
-                <HomeIcon className="w-5 h-5" />
+                <FolderIcon className="w-5 h-5" />
+              </Link>
+              <Link
+                href={`/${currentTeam.slug}/members`}
+                className={`flex items-center justify-center w-10 h-10 rounded-geist transition-colors ${
+                  isActive(`/${currentTeam.slug}/members`)
+                    ? "bg-muted"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+                title="Members"
+              >
+                <UsersIcon className="w-5 h-5" />
               </Link>
               <Link
                 href={`/${currentTeam.slug}/settings`}
@@ -174,6 +208,54 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 }`}
                 title="Team Settings"
+              >
+                <SettingsIcon className="w-5 h-5" />
+              </Link>
+            </>
+          )}
+
+          {currentTeam && currentProject && (
+            <>
+              <Link
+                href={`/${currentTeam.slug}`}
+                className="flex items-center justify-center w-10 h-10 rounded-geist text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                title={`Back to ${currentTeam.name}`}
+              >
+                <ArrowLeftIcon className="w-5 h-5" />
+              </Link>
+              <div className="my-2 border-t border-unfocused-border-color" />
+              <Link
+                href={`/${currentTeam.slug}/${currentProject.slug}`}
+                className={`flex items-center justify-center w-10 h-10 rounded-geist transition-colors ${
+                  isActive(`/${currentTeam.slug}/${currentProject.slug}`)
+                    ? "bg-muted"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+                title="Videos"
+              >
+                <VideoIcon className="w-5 h-5" />
+              </Link>
+              <Link
+                href={`/${currentTeam.slug}/${currentProject.slug}/assets`}
+                className={`flex items-center justify-center w-10 h-10 rounded-geist transition-colors ${
+                  isActive(`/${currentTeam.slug}/${currentProject.slug}/assets`)
+                    ? "bg-muted"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+                title="Assets"
+              >
+                <ImageIcon className="w-5 h-5" />
+              </Link>
+              <Link
+                href={`/${currentTeam.slug}/${currentProject.slug}/settings`}
+                className={`flex items-center justify-center w-10 h-10 rounded-geist transition-colors ${
+                  isActive(
+                    `/${currentTeam.slug}/${currentProject.slug}/settings`,
+                  )
+                    ? "bg-muted"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+                title="Project Settings"
               >
                 <SettingsIcon className="w-5 h-5" />
               </Link>
@@ -200,6 +282,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     );
   }
 
+  // Expanded sidebar
   return (
     <aside className="sidebar h-screen border-r border-unfocused-border-color bg-background flex flex-col">
       {/* Team Switcher */}
@@ -209,16 +292,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Navigation */}
       <nav className="flex-1 p-3 overflow-y-auto">
-        {currentTeam && (
+        {currentTeam && !currentProject && (
           <>
-            {/* Main Navigation */}
-            <div className="space-y-1 mb-6">
+            {/* Team-scoped navigation */}
+            <div className="space-y-1">
               <Link
                 href={`/${currentTeam.slug}`}
                 className={navItemClass(isActive(`/${currentTeam.slug}`))}
               >
-                <HomeIcon className="w-4 h-4 shrink-0" />
-                <span>Overview</span>
+                <FolderIcon className="w-4 h-4 shrink-0" />
+                <span>Projects</span>
+                <span className="ml-auto text-xs text-muted-foreground">
+                  {currentTeam._count.projects}
+                </span>
+              </Link>
+              <Link
+                href={`/${currentTeam.slug}/members`}
+                className={navItemClass(
+                  isActivePrefix(`/${currentTeam.slug}/members`),
+                )}
+              >
+                <UsersIcon className="w-4 h-4 shrink-0" />
+                <span>Members</span>
               </Link>
               <Link
                 href={`/${currentTeam.slug}/settings`}
@@ -227,82 +322,88 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 )}
               >
                 <SettingsIcon className="w-4 h-4 shrink-0" />
-                <span>Team Settings</span>
+                <span>Settings</span>
               </Link>
             </div>
 
-            {/* Projects Section */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Projects
-                </span>
-                <Link
-                  href={`/${currentTeam.slug}/new`}
-                  className="p-1 rounded-geist text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                  title="New project"
-                >
-                  <PlusIcon className="w-4 h-4" />
-                </Link>
-              </div>
-              <div className="space-y-1">
-                {projects.length === 0 ? (
-                  <p className="text-xs text-muted-foreground px-3 py-2">
-                    No projects yet
-                  </p>
-                ) : (
-                  projects.map((project) => (
+            {/* Quick access to projects */}
+            {projects.length > 0 && (
+              <div className="mt-6">
+                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 px-3">
+                  Recent Projects
+                </div>
+                <div className="space-y-1">
+                  {projects.slice(0, 5).map((project) => (
                     <Link
                       key={project.id}
                       href={`/${currentTeam.slug}/${project.slug}`}
-                      className={navItemClass(
-                        currentProject?.id === project.id ||
-                          pathname.startsWith(
-                            `/${currentTeam.slug}/${project.slug}`,
-                          ),
-                      )}
+                      className={navItemClass(false)}
                     >
-                      <FolderIcon className="w-4 h-4 shrink-0" />
+                      <FolderIcon className="w-4 h-4 shrink-0 opacity-60" />
                       <span className="truncate">{project.name}</span>
-                      <span className="ml-auto text-xs text-muted-foreground">
-                        {project._count.videos}
-                      </span>
                     </Link>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* Current Project Navigation */}
-            {currentProject && (
-              <div className="mt-6">
-                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 px-3">
-                  {currentProject.name}
-                </div>
-                <div className="space-y-1">
-                  <Link
-                    href={`/${currentTeam.slug}/${currentProject.slug}`}
-                    className={navItemClass(
-                      isActive(`/${currentTeam.slug}/${currentProject.slug}`),
-                    )}
-                  >
-                    <VideoIcon className="w-4 h-4 shrink-0" />
-                    <span>Editor</span>
-                  </Link>
-                  <Link
-                    href={`/${currentTeam.slug}/${currentProject.slug}/settings`}
-                    className={navItemClass(
-                      isActive(
-                        `/${currentTeam.slug}/${currentProject.slug}/settings`,
-                      ),
-                    )}
-                  >
-                    <SettingsIcon className="w-4 h-4 shrink-0" />
-                    <span>Project Settings</span>
-                  </Link>
+                  ))}
                 </div>
               </div>
             )}
+          </>
+        )}
+
+        {currentTeam && currentProject && (
+          <>
+            {/* Back to team */}
+            <Link href={`/${currentTeam.slug}`} className={navItemClass(false)}>
+              <ArrowLeftIcon className="w-4 h-4 shrink-0" />
+              <span className="truncate">Back to {currentTeam.name}</span>
+            </Link>
+
+            <div className="my-4 border-t border-unfocused-border-color" />
+
+            {/* Project name header */}
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 px-3">
+              {currentProject.name}
+            </div>
+
+            {/* Project-scoped navigation */}
+            <div className="space-y-1">
+              <Link
+                href={`/${currentTeam.slug}/${currentProject.slug}`}
+                className={navItemClass(
+                  isActive(`/${currentTeam.slug}/${currentProject.slug}`),
+                )}
+              >
+                <VideoIcon className="w-4 h-4 shrink-0" />
+                <span>Videos</span>
+                <span className="ml-auto text-xs text-muted-foreground">
+                  {currentProject._count.videos}
+                </span>
+              </Link>
+              <Link
+                href={`/${currentTeam.slug}/${currentProject.slug}/assets`}
+                className={navItemClass(
+                  isActivePrefix(
+                    `/${currentTeam.slug}/${currentProject.slug}/assets`,
+                  ),
+                )}
+              >
+                <ImageIcon className="w-4 h-4 shrink-0" />
+                <span>Assets</span>
+                <span className="ml-auto text-xs text-muted-foreground">
+                  {currentProject._count.assets}
+                </span>
+              </Link>
+              <Link
+                href={`/${currentTeam.slug}/${currentProject.slug}/settings`}
+                className={navItemClass(
+                  isActive(
+                    `/${currentTeam.slug}/${currentProject.slug}/settings`,
+                  ),
+                )}
+              >
+                <SettingsIcon className="w-4 h-4 shrink-0" />
+                <span>Settings</span>
+              </Link>
+            </div>
           </>
         )}
       </nav>

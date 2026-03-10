@@ -1,24 +1,11 @@
 "use client";
 
-import React, { useState, useCallback, useMemo } from "react";
-import { Player } from "@remotion/player";
-import { Main } from "@/remotion/MyComp/Main";
-import {
-  DURATION_IN_FRAMES,
-  VIDEO_FPS,
-  VIDEO_HEIGHT,
-  VIDEO_WIDTH,
-} from "@/types/constants";
-import { RenderControls } from "@/components/RenderControls";
+import React from "react";
+import Link from "next/link";
 import { Breadcrumbs } from "@/components/dashboard/Breadcrumbs";
 import { EmptyState } from "@/components/dashboard/EmptyState";
-import { AssetManager } from "@/components/dashboard/AssetManager";
 import { VideoIllustration } from "@/components/dashboard/illustrations";
-import type { ProjectDetails, ProjectAssetRecord } from "@/types/schema";
-
-interface ProjectPageClientProps {
-  project: ProjectDetails;
-}
+import type { ProjectDetails } from "@/types/schema";
 
 const formatBytes = (bytes: number | null) => {
   if (!bytes) return "0 B";
@@ -37,40 +24,208 @@ const formatDate = (date: string) => {
   });
 };
 
+const PlusIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="12" y1="5" x2="12" y2="19" />
+    <line x1="5" y1="12" x2="19" y2="12" />
+  </svg>
+);
+
+const PlayIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M8 5v14l11-7z" />
+  </svg>
+);
+
+const DownloadIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg
+    className={className}
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={1.5}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+    />
+  </svg>
+);
+
+const VideoCard: React.FC<{
+  video: ProjectDetails["videos"][number];
+  teamSlug: string;
+  projectSlug: string;
+}> = ({ video, teamSlug, projectSlug }) => {
+  const statusConfig = {
+    rendering: {
+      badge: (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-geist-warning/10 text-geist-warning border border-geist-warning/20">
+          <span className="w-1.5 h-1.5 rounded-full bg-geist-warning animate-pulse" />
+          Rendering
+        </span>
+      ),
+    },
+    ready: {
+      badge: (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-geist-success/10 text-geist-success border border-geist-success/20">
+          <svg
+            className="w-3 h-3"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M5 13l4 4L19 7"
+            />
+          </svg>
+          Ready
+        </span>
+      ),
+    },
+    failed: {
+      badge: (
+        <span
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-geist-error/10 text-geist-error border border-geist-error/20"
+          title={video.errorMessage ?? "Render failed"}
+        >
+          <svg
+            className="w-3 h-3"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+          Failed
+        </span>
+      ),
+    },
+  };
+
+  return (
+    <Link
+      href={`/${teamSlug}/${projectSlug}/${video.id}`}
+      className="group block border border-unfocused-border-color rounded-geist hover:border-focused-border-color transition-colors overflow-hidden"
+    >
+      {/* Video Thumbnail / Preview Area */}
+      <div className="relative aspect-video bg-muted flex items-center justify-center">
+        {video.status === "ready" && video.renderUrl ? (
+          <>
+            <video
+              src={video.renderUrl}
+              className="w-full h-full object-cover"
+              muted
+              playsInline
+              preload="metadata"
+            />
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
+                <PlayIcon className="w-6 h-6 text-black ml-1" />
+              </div>
+            </div>
+          </>
+        ) : video.status === "rendering" ? (
+          <div className="flex flex-col items-center gap-2 text-muted-foreground">
+            <div className="w-10 h-10 border-2 border-geist-warning border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm">Rendering...</span>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-2 text-muted-foreground">
+            <svg
+              className="w-10 h-10 opacity-50"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <span className="text-sm">Failed to render</span>
+          </div>
+        )}
+      </div>
+
+      {/* Video Info */}
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <h4 className="font-medium text-foreground truncate">
+              {video.title}
+            </h4>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-xs text-muted-foreground">
+              <span>{formatDate(video.createdAt)}</span>
+              {video.size && <span>{formatBytes(video.size)}</span>}
+              {video.asset && (
+                <span className="flex items-center gap-1">
+                  <svg
+                    className="w-3 h-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14"
+                    />
+                  </svg>
+                  {video.asset.name}
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="shrink-0 flex items-center gap-2">
+            {statusConfig[video.status]?.badge}
+            {video.status === "ready" && video.renderUrl && (
+              <a
+                href={video.renderUrl}
+                download
+                onClick={(e) => e.stopPropagation()}
+                className="p-2 rounded-geist border border-unfocused-border-color hover:bg-muted hover:border-focused-border-color transition-colors"
+                title="Download video"
+              >
+                <DownloadIcon className="w-4 h-4" />
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+};
+
+interface ProjectPageClientProps {
+  project: ProjectDetails;
+}
+
 export const ProjectPageClient: React.FC<ProjectPageClientProps> = ({
   project,
 }) => {
-  const [text, setText] = useState<string>("Hello, World!");
-  const [assets, setAssets] = useState<ProjectAssetRecord[]>(project.assets);
-  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(
-    project.assets[0]?.id ?? null,
-  );
-
-  const selectedAsset = useMemo(
-    () => assets.find((a) => a.id === selectedAssetId) ?? null,
-    [assets, selectedAssetId],
-  );
-
-  const inputProps = useMemo(
-    () => ({
-      title: text,
-      projectName: project.name,
-      assetName: selectedAsset?.name,
-      assetUrl: selectedAsset?.url,
-    }),
-    [text, project.name, selectedAsset?.name, selectedAsset?.url],
-  );
-
-  const handleRendered = useCallback(async () => {
-    window.location.reload();
-  }, []);
-
-  const handleAssetsChange = useCallback((newAssets: ProjectAssetRecord[]) => {
-    setAssets(newAssets);
-  }, []);
-
   return (
-    <div className="p-6 md:p-8">
+    <div className="p-6 md:p-8 max-w-[1400px] mx-auto">
       <Breadcrumbs
         items={[
           { label: project.team.name, href: `/${project.team.slug}` },
@@ -81,118 +236,48 @@ export const ProjectPageClient: React.FC<ProjectPageClientProps> = ({
         ]}
       />
 
-      <div className="mt-6 grid gap-8 lg:grid-cols-[1fr,380px]">
-        {/* Left Column - Preview & Controls */}
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-lg font-medium text-foreground mb-4">
-              Preview
-            </h2>
-            <div className="border border-unfocused-border-color rounded-geist overflow-hidden bg-black">
-              <Player
-                component={Main}
-                inputProps={inputProps}
-                durationInFrames={DURATION_IN_FRAMES}
-                fps={VIDEO_FPS}
-                compositionHeight={VIDEO_HEIGHT}
-                compositionWidth={VIDEO_WIDTH}
-                style={{ width: "100%" }}
-                controls
-                autoPlay
-                loop
-              />
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-sm font-medium text-foreground mb-3">
-              Render Settings
-            </h3>
-            <RenderControls
-              text={text}
-              setText={setText}
-              inputProps={inputProps}
-              projectId={project.id}
-              assetId={selectedAssetId}
-              projectName={project.name}
-              onRendered={handleRendered}
-            />
-          </div>
-
-          {/* Rendered Videos */}
-          <div>
-            <h2 className="text-lg font-medium text-foreground mb-4">
-              Rendered Videos
-            </h2>
-
-            {project.videos.length === 0 ? (
-              <EmptyState
-                icon={<VideoIllustration className="w-12 h-12" />}
-                title="No videos yet"
-                description="Render your first video using the controls above."
-              />
-            ) : (
-              <div className="space-y-3">
-                {project.videos.map((video) => (
-                  <div
-                    key={video.id}
-                    className="border border-unfocused-border-color rounded-geist p-4"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-foreground truncate">
-                          {video.title}
-                        </h4>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                          <span>{formatDate(video.createdAt)}</span>
-                          {video.size && <span>{formatBytes(video.size)}</span>}
-                          {video.asset && <span>{video.asset.name}</span>}
-                        </div>
-                      </div>
-                      <div className="shrink-0">
-                        {video.status === "rendering" && (
-                          <span className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded-full bg-geist-warning/10 text-geist-warning">
-                            <span className="w-1.5 h-1.5 rounded-full bg-geist-warning animate-pulse" />
-                            Rendering
-                          </span>
-                        )}
-                        {video.status === "ready" && video.renderUrl && (
-                          <a
-                            href={video.renderUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-geist border border-unfocused-border-color hover:bg-muted transition-colors"
-                          >
-                            Download
-                          </a>
-                        )}
-                        {video.status === "failed" && (
-                          <span
-                            className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded-full bg-geist-error/10 text-geist-error"
-                            title={video.errorMessage ?? "Render failed"}
-                          >
-                            Failed
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+      {/* Header */}
+      <div className="mt-6 flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Videos</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {project.videos.length} video
+            {project.videos.length !== 1 ? "s" : ""} in this project
+          </p>
         </div>
+        <Link
+          href={`/${project.team.slug}/${project.slug}/new`}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-geist text-sm font-medium hover:opacity-90 transition-opacity"
+        >
+          <PlusIcon className="w-4 h-4" />
+          New Video
+        </Link>
+      </div>
 
-        {/* Right Column - Asset Manager */}
-        <div className="lg:border-l lg:border-unfocused-border-color lg:pl-8">
-          <AssetManager
-            projectId={project.id}
-            assets={assets}
-            selectedAssetId={selectedAssetId}
-            onSelectAsset={setSelectedAssetId}
-            onAssetsChange={handleAssetsChange}
+      {/* Videos Grid */}
+      <div className="mt-8">
+        {project.videos.length === 0 ? (
+          <EmptyState
+            icon={<VideoIllustration className="w-12 h-12" />}
+            title="No videos yet"
+            description="Create your first video to get started with rendering."
+            action={{
+              label: "Create Video",
+              href: `/${project.team.slug}/${project.slug}/new`,
+            }}
           />
-        </div>
+        ) : (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {project.videos.map((video) => (
+              <VideoCard
+                key={video.id}
+                video={video}
+                teamSlug={project.team.slug}
+                projectSlug={project.slug}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

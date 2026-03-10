@@ -19,6 +19,11 @@ export const videoStatusEnum = pgEnum("video_status", [
   "ready",
   "failed",
 ]);
+export const teamMemberRoleEnum = pgEnum("team_member_role", [
+  "owner",
+  "admin",
+  "member",
+]);
 
 export const user = pgTable(
   "user",
@@ -142,6 +147,35 @@ export const team = pgTable(
   ],
 );
 
+export const teamMember = pgTable(
+  "team_member",
+  {
+    id: text("id").primaryKey().$defaultFn(createId),
+    teamId: text("team_id")
+      .notNull()
+      .references(() => team.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    role: teamMemberRoleEnum("role").notNull().default("member"),
+    invitedBy: text("invited_by").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    joinedAt: timestamp("joined_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("team_member_team_user_idx").on(table.teamId, table.userId),
+    index("team_member_team_id_idx").on(table.teamId),
+    index("team_member_user_id_idx").on(table.userId),
+  ],
+);
+
 export const project = pgTable(
   "project",
   {
@@ -216,6 +250,7 @@ export const video = pgTable(
 
 export const userRelations = relations(user, ({ many }) => ({
   teams: many(team),
+  teamMemberships: many(teamMember),
   accounts: many(account),
   sessions: many(session),
 }));
@@ -225,7 +260,23 @@ export const teamRelations = relations(team, ({ one, many }) => ({
     fields: [team.ownerId],
     references: [user.id],
   }),
+  members: many(teamMember),
   projects: many(project),
+}));
+
+export const teamMemberRelations = relations(teamMember, ({ one }) => ({
+  team: one(team, {
+    fields: [teamMember.teamId],
+    references: [team.id],
+  }),
+  user: one(user, {
+    fields: [teamMember.userId],
+    references: [user.id],
+  }),
+  inviter: one(user, {
+    fields: [teamMember.invitedBy],
+    references: [user.id],
+  }),
 }));
 
 export const projectRelations = relations(project, ({ one, many }) => ({
@@ -237,13 +288,16 @@ export const projectRelations = relations(project, ({ one, many }) => ({
   videos: many(video),
 }));
 
-export const projectAssetRelations = relations(projectAsset, ({ one, many }) => ({
-  project: one(project, {
-    fields: [projectAsset.projectId],
-    references: [project.id],
+export const projectAssetRelations = relations(
+  projectAsset,
+  ({ one, many }) => ({
+    project: one(project, {
+      fields: [projectAsset.projectId],
+      references: [project.id],
+    }),
+    videos: many(video),
   }),
-  videos: many(video),
-}));
+);
 
 export const videoRelations = relations(video, ({ one }) => ({
   project: one(project, {

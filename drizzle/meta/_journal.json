@@ -8,6 +8,13 @@
       "when": 1773129137693,
       "tag": "0000_deep_major_mapleleaf",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1773138030121,
+      "tag": "0001_luxuriant_lake",
+      "breakpoints": true
     }
   ]
 }

@@ -29,7 +29,7 @@ export const useRendering = (
   projectId: string | null,
   assetId: string | null,
   inputProps: z.infer<typeof CompositionProps>,
-  onRendered?: () => Promise<void> | void,
+  onRendered?: (videoId: string) => Promise<void> | void,
 ) => {
   const [state, setState] = useState<State>({
     status: "init",
@@ -55,7 +55,12 @@ export const useRendering = (
       const response = await fetch("/api/render", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ id, projectId, assetId: assetId ?? undefined, inputProps }),
+        body: JSON.stringify({
+          id,
+          projectId,
+          assetId: assetId ?? undefined,
+          inputProps,
+        }),
       });
 
       if (!response.ok) {
@@ -112,7 +117,7 @@ export const useRendering = (
                 size: message.size,
                 videoId: message.videoId,
               });
-              await onRendered?.();
+              await onRendered?.(message.videoId);
               break;
             case "error":
               setState({

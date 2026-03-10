@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { and, count, desc, eq, sql } from "drizzle-orm";
 import { getServerSession } from "../../lib/server-session";
 import { getDb } from "../../lib/db";
@@ -9,9 +10,11 @@ import type { TeamSummary, ProjectSummary } from "@/types/schema";
 // Force dynamic rendering for all dashboard pages
 export const dynamic = "force-dynamic";
 
+// Reserved paths that are not team slugs
+const RESERVED_PATHS = ["dashboard", "new", "settings", "api"];
+
 interface DashboardLayoutProps {
   children: React.ReactNode;
-  params: Promise<{ teamSlug?: string; projectSlug?: string }>;
 }
 
 async function getTeams(userId: string): Promise<TeamSummary[]> {
@@ -212,7 +215,6 @@ async function getProjectBySlug(
 
 export default async function DashboardLayout({
   children,
-  params,
 }: DashboardLayoutProps) {
   const session = await getServerSession();
 
@@ -220,7 +222,25 @@ export default async function DashboardLayout({
     redirect("/");
   }
 
-  const { teamSlug, projectSlug } = await params;
+  // Parse URL to extract teamSlug and projectSlug
+  // Route group layouts don't receive params from nested dynamic segments
+  const headersList = await headers();
+  const pathname =
+    headersList.get("x-pathname") || headersList.get("x-invoke-path") || "";
+
+  // Try to extract from referer or use a fallback approach
+  let teamSlug: string | undefined;
+  let projectSlug: string | undefined;
+
+  // Parse pathname like /my-team or /my-team/my-project
+  const pathParts = pathname.split("/").filter(Boolean);
+  if (pathParts.length > 0 && !RESERVED_PATHS.includes(pathParts[0])) {
+    teamSlug = pathParts[0];
+    if (pathParts.length > 1 && !RESERVED_PATHS.includes(pathParts[1])) {
+      projectSlug = pathParts[1];
+    }
+  }
+
   const userId = session.user.id;
 
   // Fetch teams
