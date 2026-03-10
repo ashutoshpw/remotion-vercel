@@ -14,8 +14,28 @@ export const RenderControls: React.FC<{
   text: string;
   setText: React.Dispatch<React.SetStateAction<string>>;
   inputProps: z.infer<typeof CompositionProps>;
-}> = ({ text, setText, inputProps }) => {
-  const { renderMedia, state, undo } = useRendering(COMP_NAME, inputProps);
+  projectId: string | null;
+  assetId: string | null;
+  projectName: string | null;
+  onRendered?: () => Promise<void> | void;
+}> = ({
+  text,
+  setText,
+  inputProps,
+  projectId,
+  assetId,
+  projectName,
+  onRendered,
+}) => {
+  const { renderMedia, state, undo } = useRendering(
+    COMP_NAME,
+    projectId,
+    assetId,
+    inputProps,
+    onRendered,
+  );
+
+  const disabled = state.status === "invoking" || !projectId;
 
   return (
     <InputContainer>
@@ -23,18 +43,19 @@ export const RenderControls: React.FC<{
       state.status === "invoking" ||
       state.status === "error" ? (
         <>
-          <Input
-            disabled={state.status === "invoking"}
-            setText={setText}
-            text={text}
-          ></Input>
+          <Input disabled={disabled} setText={setText} text={text}></Input>
+          <div className="mt-3 text-sm text-subtitle">
+            {projectName
+              ? `The next render will be saved to ${projectName}.`
+              : "Create a project to start rendering."}
+          </div>
           <AlignEnd className="mt-4">
             <Button
-              disabled={state.status === "invoking"}
+              disabled={disabled}
               loading={state.status === "invoking"}
               onClick={renderMedia}
             >
-              Render video
+              {projectId ? "Render video" : "Create a project first"}
             </Button>
           </AlignEnd>
           {state.status === "invoking" ? (

@@ -14,7 +14,7 @@ export function bundleRemotionProject(bundleDir: string): void {
 
 export type RenderProgress =
   | { type: "phase"; phase: string; progress: number; subtitle?: string }
-  | { type: "done"; url: string; size: number }
+  | { type: "done"; url: string; size: number; videoId: string }
   | { type: "error"; message: string };
 
 export type OnProgressFn = (message: RenderProgress) => Promise<void>;

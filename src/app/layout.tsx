@@ -2,8 +2,9 @@ import { Metadata, Viewport } from "next";
 import "../../styles/global.css";
 
 export const metadata: Metadata = {
-  title: "Remotion rendering on Vercel Sandbox",
-  description: "Remotion rendering on Vercel Sandbox",
+  title: "Remotion teams and projects on Vercel",
+  description:
+    "Authenticated Remotion workspaces with reusable project assets and Vercel-backed renders.",
 };
 
 export const viewport: Viewport = {
@@ -19,7 +20,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-background">{children}</body>
+      <body className="bg-background text-foreground">{children}</body>
     </html>
   );
 }

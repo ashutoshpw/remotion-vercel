@@ -5,6 +5,10 @@ import {
   uploadToVercelBlob,
 } from "@remotion/vercel";
 import { waitUntil } from "@vercel/functions";
+import { NextResponse } from "next/server";
+import { ZodError } from "zod";
+import { prisma } from "../../../lib/prisma";
+import { getRequestSession } from "../../../lib/session";
 import { COMP_NAME } from "../../../../types/constants";
 import { RenderRequest } from "../../../../types/schema";
 import {
@@ -15,19 +19,71 @@ import {
 import { restoreSnapshot } from "./restore-snapshot";
 
 export async function POST(req: Request) {
-  const encoder = new TextEncoder();
-  const stream = new TransformStream();
-  const writer = stream.writable.getWriter();
+  const session = await getRequestSession(req);
+
+  if (!session) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
 
   const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
   if (!blobToken) {
-    throw new Error(
-      'BLOB_READ_WRITE_TOKEN is not set. To fix this, go to vercel.com, log in, select Storage, click "Create Database", select "Blob", link it to your project, then add BLOB_READ_WRITE_TOKEN to your .env file.',
+    return NextResponse.json(
+      {
+        message:
+          'BLOB_READ_WRITE_TOKEN is not set. Create a public Vercel Blob store and add BLOB_READ_WRITE_TOKEN to your environment.',
+      },
+      { status: 503 },
     );
   }
 
-  const payload = await req.json();
-  const body = RenderRequest.parse(payload);
+  let body: ReturnType<typeof RenderRequest.parse>;
+
+  try {
+    const payload = await req.json();
+    body = RenderRequest.parse(payload);
+  } catch (error) {
+    const message = error instanceof ZodError ? error.message : "Invalid render request";
+    return NextResponse.json({ message }, { status: 400 });
+  }
+
+  const project = await prisma.project.findFirst({
+    where: {
+      id: body.projectId,
+      team: {
+        ownerId: session.user.id,
+      },
+    },
+  });
+
+  if (!project) {
+    return NextResponse.json({ message: "Project not found" }, { status: 404 });
+  }
+
+  if (body.assetId) {
+    const asset = await prisma.projectAsset.findFirst({
+      where: {
+        id: body.assetId,
+        projectId: body.projectId,
+      },
+    });
+
+    if (!asset) {
+      return NextResponse.json({ message: "Asset not found" }, { status: 404 });
+    }
+  }
+
+  const video = await prisma.video.create({
+    data: {
+      projectId: body.projectId,
+      assetId: body.assetId,
+      title: body.inputProps.title,
+      inputProps: body.inputProps,
+    },
+  });
+
+  const encoder = new TextEncoder();
+  const stream = new TransformStream();
+  const writer = stream.writable.getWriter();
 
   const send = async (message: RenderProgress) => {
     await writer.write(encoder.encode(formatSSE(message)));
@@ -43,7 +99,7 @@ export async function POST(req: Request) {
               type: "phase",
               phase: message,
               progress,
-              subtitle: "This is only needed during development.",
+              subtitle: "This setup step only happens during local development.",
             });
           },
         });
@@ -101,10 +157,27 @@ export async function POST(req: Request) {
         access: "public",
       });
 
-      await send({ type: "done", url, size });
+      await prisma.video.update({
+        where: { id: video.id },
+        data: {
+          status: "ready",
+          renderUrl: url,
+          size,
+        },
+      });
+
+      await send({ type: "done", url, size, videoId: video.id });
     } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to render video";
       console.log(err);
-      await send({ type: "error", message: (err as Error).message });
+      await prisma.video.update({
+        where: { id: video.id },
+        data: {
+          status: "failed",
+          errorMessage: message,
+        },
+      });
+      await send({ type: "error", message });
     } finally {
       await sandbox?.stop().catch(() => {});
       await writer.close();
