@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { TeamSwitcher } from "./TeamSwitcher";
 import { NavUser } from "./NavUser";
-import { TeamSummary, ProjectSummary } from "../../../types/schema";
+import { TeamSummary, ProjectSummary } from "@/types/schema";
 
 const HomeIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg

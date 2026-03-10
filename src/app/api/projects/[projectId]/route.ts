@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { and, desc, eq } from "drizzle-orm";
 import { z, ZodError } from "zod";
-import { project, projectAsset, team, video } from "../../../../db/schema";
-import { getDb } from "../../../../lib/db";
-import { getRequestSession } from "../../../../lib/session";
-import { makeUniqueSlug } from "../../../../lib/slugify";
-import { type ProjectDetails } from "../../../../../types/schema";
+import { project, projectAsset, team, video } from "@/db/schema";
+import { getDb } from "@/lib/db";
+import { getRequestSession } from "@/lib/session";
+import { makeUniqueSlug } from "@/lib/slugify";
+import { type ProjectDetails } from "@/types/schema";
 
 const UpdateProjectRequest = z.object({
   name: z.string().trim().min(2).max(80).optional(),

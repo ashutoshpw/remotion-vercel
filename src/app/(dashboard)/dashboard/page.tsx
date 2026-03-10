@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { desc, eq } from "drizzle-orm";
-import { getServerSession } from "../../../lib/server-session";
-import { getDb } from "../../../lib/db";
-import { team } from "../../../db/schema";
+import { getServerSession } from "@/lib/server-session";
+import { getDb } from "@/lib/db";
+import { team } from "@/db/schema";
 
 export default async function DashboardPage() {
   const session = await getServerSession();

@@ -14,7 +14,7 @@
         "@remotion/tailwind-v4": "^4.0.0",
         "@remotion/vercel": "^4.0.0",
         "@types/bun": "1.3.3",
-        "@vercel/blob": "2.3.0",
+        "@vercel/blob": "^2.3.1",
         "@vercel/functions": "^3.4.1",
         "@vercel/sandbox": "1.6.0",
         "better-auth": "^1.5.4",
@@ -512,7 +512,7 @@
 
     "@unrs/resolver-binding-win32-x64-msvc": ["@unrs/resolver-binding-win32-x64-msvc@1.11.1", "", { "os": "win32", "cpu": "x64" }, "sha512-lrW200hZdbfRtztbygyaq/6jP6AKE8qQN2KvPcJ+x7wiD038YtnYtZ82IMNJ69GJibV7bwL3y9FgK+5w/pYt6g=="],
 
-    "@vercel/blob": ["@vercel/blob@2.3.0", "", { "dependencies": { "async-retry": "^1.3.3", "is-buffer": "^2.0.5", "is-node-process": "^1.2.0", "throttleit": "^2.1.0", "undici": "^6.23.0" } }, "sha512-oYWiJbWRQ7gz9Mj0X/NHFJ3OcLMOBzq/2b3j6zeNrQmtFo6dHwU8FAwNpxVIYddVMd+g8eqEi7iRueYx8FtM0Q=="],
+    "@vercel/blob": ["@vercel/blob@2.3.1", "", { "dependencies": { "async-retry": "^1.3.3", "is-buffer": "^2.0.5", "is-node-process": "^1.2.0", "throttleit": "^2.1.0", "undici": "^6.23.0" } }, "sha512-6f9oWC+DbWxIgBLOdqjjn2/REpFrPDB7y5B5HA1ptYkzZaBgL6E34kWrptJvJ7teApJdbAs3I1a5A7z1y8SDHw=="],
 
     "@vercel/functions": ["@vercel/functions@3.4.3", "", { "dependencies": { "@vercel/oidc": "3.2.0" }, "peerDependencies": { "@aws-sdk/credential-provider-web-identity": "*" }, "optionalPeers": ["@aws-sdk/credential-provider-web-identity"] }, "sha512-kA14KIUVgAY6VXbhZ5jjY+s0883cV3cZqIU3WhrSRxuJ9KvxatMjtmzl0K23HK59oOUjYl7HaE/eYMmhmqpZzw=="],
 

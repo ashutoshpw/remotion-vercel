@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { count, desc, eq, sql } from "drizzle-orm";
 import { ZodError } from "zod";
-import { project, team } from "../../../db/schema";
-import { getDb } from "../../../lib/db";
-import { getRequestSession } from "../../../lib/session";
-import { makeUniqueSlug } from "../../../lib/slugify";
-import { TeamRequest, type TeamSummary } from "../../../../types/schema";
+import { project, team } from "@/db/schema";
+import { getDb } from "@/lib/db";
+import { getRequestSession } from "@/lib/session";
+import { makeUniqueSlug } from "@/lib/slugify";
+import { TeamRequest, type TeamSummary } from "@/types/schema";
 
 const serializeTeam = (team: {
   id: string;

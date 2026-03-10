@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { TeamIllustration } from "../../../components/dashboard/illustrations";
+import { TeamIllustration } from "@/components/dashboard/illustrations";
 
 export default function NewTeamPage() {
   const router = useRouter();

@@ -1,10 +1,10 @@
 import { redirect, notFound } from "next/navigation";
 import { count, desc, eq, sql } from "drizzle-orm";
-import { getServerSession } from "../../../lib/server-session";
-import { getDb } from "../../../lib/db";
-import { project, projectAsset, team, video } from "../../../db/schema";
+import { getServerSession } from "@/lib/server-session";
+import { getDb } from "@/lib/db";
+import { project, projectAsset, team, video } from "@/db/schema";
 import { TeamPageClient } from "./TeamPageClient";
-import type { ProjectSummary, TeamSummary } from "../../../../types/schema";
+import type { ProjectSummary, TeamSummary } from "@/types/schema";
 
 interface PageProps {
   params: Promise<{ teamSlug: string }>;

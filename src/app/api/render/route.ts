@@ -8,11 +8,11 @@ import { waitUntil } from "@vercel/functions";
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
-import { project, projectAsset, team, video } from "../../../db/schema";
-import { getDb } from "../../../lib/db";
-import { getRequestSession } from "../../../lib/session";
-import { COMP_NAME } from "../../../../types/constants";
-import { RenderRequest } from "../../../../types/schema";
+import { project, projectAsset, team, video } from "@/db/schema";
+import { getDb } from "@/lib/db";
+import { getRequestSession } from "@/lib/session";
+import { COMP_NAME } from "@/types/constants";
+import { RenderRequest } from "@/types/schema";
 import {
   bundleRemotionProject,
   formatSSE,
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         message:
-          'BLOB_READ_WRITE_TOKEN is not set. Create a public Vercel Blob store and add BLOB_READ_WRITE_TOKEN to your environment.',
+          "BLOB_READ_WRITE_TOKEN is not set. Create a public Vercel Blob store and add BLOB_READ_WRITE_TOKEN to your environment.",
       },
       { status: 503 },
     );
@@ -44,7 +44,8 @@ export async function POST(req: Request) {
     const payload = await req.json();
     body = RenderRequest.parse(payload);
   } catch (error) {
-    const message = error instanceof ZodError ? error.message : "Invalid render request";
+    const message =
+      error instanceof ZodError ? error.message : "Invalid render request";
     return NextResponse.json({ message }, { status: 400 });
   }
 
@@ -53,7 +54,9 @@ export async function POST(req: Request) {
     .select({ id: project.id })
     .from(project)
     .innerJoin(team, eq(project.teamId, team.id))
-    .where(and(eq(project.id, body.projectId), eq(team.ownerId, session.user.id)))
+    .where(
+      and(eq(project.id, body.projectId), eq(team.ownerId, session.user.id)),
+    )
     .limit(1);
 
   if (!projectRecord) {
@@ -105,7 +108,8 @@ export async function POST(req: Request) {
               type: "phase",
               phase: message,
               progress,
-              subtitle: "This setup step only happens during local development.",
+              subtitle:
+                "This setup step only happens during local development.",
             });
           },
         });
@@ -175,7 +179,8 @@ export async function POST(req: Request) {
 
       await send({ type: "done", url, size, videoId: createdVideo.id });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to render video";
+      const message =
+        err instanceof Error ? err.message : "Failed to render video";
       console.log(err);
       await db
         .update(video)

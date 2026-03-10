@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 import { z, ZodError } from "zod";
-import { team } from "../../../../db/schema";
-import { getDb } from "../../../../lib/db";
-import { getRequestSession } from "../../../../lib/session";
-import { makeUniqueSlug } from "../../../../lib/slugify";
-import type { TeamSummary } from "../../../../../types/schema";
+import { team } from "@/db/schema";
+import { getDb } from "@/lib/db";
+import { getRequestSession } from "@/lib/session";
+import { makeUniqueSlug } from "@/lib/slugify";
+import type { TeamSummary } from "@/types/schema";
 
 const UpdateTeamRequest = z.object({
   name: z.string().trim().min(2).max(60),

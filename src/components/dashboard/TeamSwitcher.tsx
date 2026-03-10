@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { TeamSummary } from "../../../types/schema";
+import { TeamSummary } from "@/types/schema";
 
 const ChevronIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg

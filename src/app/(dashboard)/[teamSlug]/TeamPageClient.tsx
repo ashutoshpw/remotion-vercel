@@ -3,10 +3,10 @@
 import React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { EmptyState } from "../../../components/dashboard/EmptyState";
-import { ProjectIllustration } from "../../../components/dashboard/illustrations";
-import { Breadcrumbs } from "../../../components/dashboard/Breadcrumbs";
-import type { ProjectSummary, TeamSummary } from "../../../../types/schema";
+import { EmptyState } from "@/components/dashboard/EmptyState";
+import { ProjectIllustration } from "@/components/dashboard/illustrations";
+import { Breadcrumbs } from "@/components/dashboard/Breadcrumbs";
+import type { ProjectSummary, TeamSummary } from "@/types/schema";
 
 const FolderIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg

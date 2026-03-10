@@ -1,8 +1,8 @@
 import { redirect, notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { getServerSession } from "../../../../lib/server-session";
-import { getDb } from "../../../../lib/db";
-import { team } from "../../../../db/schema";
+import { getServerSession } from "@/lib/server-session";
+import { getDb } from "@/lib/db";
+import { team } from "@/db/schema";
 import { NewProjectPageClient } from "./NewProjectPageClient";
 
 interface PageProps {

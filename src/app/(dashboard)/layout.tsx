@@ -4,7 +4,7 @@ import { getServerSession } from "../../lib/server-session";
 import { getDb } from "../../lib/db";
 import { project, projectAsset, team, video } from "../../db/schema";
 import { DashboardLayoutClient } from "./DashboardLayoutClient";
-import type { TeamSummary, ProjectSummary } from "../../../types/schema";
+import type { TeamSummary, ProjectSummary } from "@/types/schema";
 
 // Force dynamic rendering for all dashboard pages
 export const dynamic = "force-dynamic";

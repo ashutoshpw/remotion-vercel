@@ -1,10 +1,10 @@
 import { redirect, notFound } from "next/navigation";
 import { and, desc, eq } from "drizzle-orm";
-import { getServerSession } from "../../../../../lib/server-session";
-import { getDb } from "../../../../../lib/db";
-import { project, projectAsset, team, video } from "../../../../../db/schema";
+import { getServerSession } from "@/lib/server-session";
+import { getDb } from "@/lib/db";
+import { project, projectAsset, team, video } from "@/db/schema";
 import { ProjectSettingsClient } from "./ProjectSettingsClient";
-import type { ProjectDetails } from "../../../../../../types/schema";
+import type { ProjectDetails } from "@/types/schema";
 
 interface PageProps {
   params: Promise<{ teamSlug: string; projectSlug: string }>;

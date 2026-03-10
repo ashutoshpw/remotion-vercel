@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 import { ZodError } from "zod";
-import { project, projectAsset, team } from "../../../../../db/schema";
-import { getDb } from "../../../../../lib/db";
-import { getRequestSession } from "../../../../../lib/session";
-import { AssetRequest } from "../../../../../../types/schema";
+import { project, projectAsset, team } from "@/db/schema";
+import { getDb } from "@/lib/db";
+import { getRequestSession } from "@/lib/session";
+import { AssetRequest } from "@/types/schema";
 
 export async function POST(
   request: Request,
@@ -29,7 +29,10 @@ export async function POST(
       .limit(1);
 
     if (!projectRecord) {
-      return NextResponse.json({ message: "Project not found" }, { status: 404 });
+      return NextResponse.json(
+        { message: "Project not found" },
+        { status: 404 },
+      );
     }
 
     const [asset] = await db

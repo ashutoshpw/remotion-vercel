@@ -2,7 +2,7 @@
 
 import React, { useEffect, useCallback } from "react";
 import { Sidebar } from "./Sidebar";
-import { TeamSummary, ProjectSummary } from "../../../types/schema";
+import { TeamSummary, ProjectSummary } from "@/types/schema";
 
 const MenuIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg

@@ -2,9 +2,9 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Breadcrumbs } from "../../../../components/dashboard/Breadcrumbs";
-import { DeleteConfirmDialog } from "../../../../components/dashboard/DeleteConfirmDialog";
-import type { TeamSummary } from "../../../../../types/schema";
+import { Breadcrumbs } from "@/components/dashboard/Breadcrumbs";
+import { DeleteConfirmDialog } from "@/components/dashboard/DeleteConfirmDialog";
+import type { TeamSummary } from "@/types/schema";
 
 interface TeamSettingsClientProps {
   team: TeamSummary;

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Sidebar } from "../../components/dashboard/Sidebar";
 import { SidebarMobile } from "../../components/dashboard/SidebarMobile";
-import { TeamSummary, ProjectSummary } from "../../../types/schema";
+import { TeamSummary, ProjectSummary } from "@/types/schema";
 
 interface DashboardLayoutClientProps {
   children: React.ReactNode;

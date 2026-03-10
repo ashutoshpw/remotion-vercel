@@ -2,8 +2,8 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ProjectIllustration } from "../../../../components/dashboard/illustrations";
-import { Breadcrumbs } from "../../../../components/dashboard/Breadcrumbs";
+import { ProjectIllustration } from "@/components/dashboard/illustrations";
+import { Breadcrumbs } from "@/components/dashboard/Breadcrumbs";
 
 interface NewProjectPageClientProps {
   teamId: string;
