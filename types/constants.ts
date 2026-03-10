@@ -10,7 +10,7 @@ export const CompositionProps = z.object({
 
 export const defaultMyCompProps: z.infer<typeof CompositionProps> = {
   title: "Ship product updates faster",
-  projectName: "Marketing Launch Video",
+  projectName: "Create a project to start rendering",
 };
 
 export const DURATION_IN_FRAMES = 200;

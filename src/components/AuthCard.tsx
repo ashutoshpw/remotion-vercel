@@ -82,6 +82,7 @@ export const AuthCard: React.FC = () => {
                 value={name}
                 onChange={(event) => setName(event.currentTarget.value)}
                 placeholder="Ada Lovelace"
+                autoComplete="name"
                 required
               />
             </div>
@@ -97,6 +98,7 @@ export const AuthCard: React.FC = () => {
               value={email}
               onChange={(event) => setEmail(event.currentTarget.value)}
               placeholder="you@example.com"
+              autoComplete="email"
               required
             />
           </div>
@@ -111,6 +113,7 @@ export const AuthCard: React.FC = () => {
               value={password}
               onChange={(event) => setPassword(event.currentTarget.value)}
               placeholder="At least 8 characters"
+              autoComplete={mode === "sign-up" ? "new-password" : "current-password"}
               minLength={8}
               required
             />

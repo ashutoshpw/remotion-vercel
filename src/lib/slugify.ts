@@ -22,12 +22,15 @@ export const makeUniqueSlug = async (
   }
 
   let counter = 2;
+  const maxAttempts = 1000;
 
-  while (true) {
+  while (counter <= maxAttempts) {
     const candidate = `${baseSlug}-${counter}`;
     if (!(await exists(candidate))) {
       return candidate;
     }
     counter += 1;
   }
+
+  throw new Error("Unable to generate a unique slug.");
 };

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { prisma } from "../../../lib/prisma";
 import { getRequestSession } from "../../../lib/session";
-import { createBaseSlug, makeUniqueSlug } from "../../../lib/slugify";
+import { makeUniqueSlug } from "../../../lib/slugify";
 import { TeamRequest, type TeamSummary } from "../../../../types/schema";
 
 const serializeTeam = (team: {
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     const team = await prisma.team.create({
       data: {
         name: payload.name,
-        slug: createBaseSlug(slug, "workspace"),
+        slug,
         ownerId: session.user.id,
       },
       include: { _count: { select: { projects: true } } },
